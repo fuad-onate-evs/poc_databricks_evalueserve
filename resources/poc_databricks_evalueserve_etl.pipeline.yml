@@ -1,0 +1,20 @@
+# The main pipeline for poc_databricks_evalueserve
+
+resources:
+  pipelines:
+    poc_databricks_evalueserve_etl:
+      name: poc_databricks_evalueserve_etl
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      root_path: "../src/poc_databricks_evalueserve_etl"
+
+      libraries:
+        - glob:
+            include: ../src/poc_databricks_evalueserve_etl/transformations/**
+
+      environment:
+        dependencies:
+          # We include every dependency defined by pyproject.toml by defining an editable environment
+          # that points to the folder where pyproject.toml is deployed.
+          - --editable ${workspace.file_path}
