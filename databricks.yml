@@ -31,8 +31,8 @@ targets:
     workspace:
       host: https://dbc-54b27bae-2e91.cloud.databricks.com
     variables:
-      catalog: workspace
-      schema: ${workspace.current_user.short_name}
+      catalog: dev
+      schema: bronze_renewable_energy
   prod:
     mode: production
     workspace:
@@ -40,8 +40,8 @@ targets:
       # We explicitly deploy to /Workspace/Users/andres.lagos@evalueserve.com to make sure we only have a single copy.
       root_path: /Workspace/Users/andres.lagos@evalueserve.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog: workspace
-      schema: prod
+      catalog: prod
+      schema: bronze_renewable_energy
     permissions:
       - user_name: andres.lagos@evalueserve.com
         level: CAN_MANAGE

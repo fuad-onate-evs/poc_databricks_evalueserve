@@ -24,7 +24,7 @@ resources:
       tasks:
         - task_key: notebook_task
           notebook_task:
-            notebook_path: ../src/sample_notebook.ipynb
+            notebook_path: ../../src/sample_notebook.ipynb
         - task_key: python_wheel_task
           depends_on:
             - task_key: notebook_task
@@ -51,4 +51,4 @@ resources:
               # By default we just include the .whl file generated for the poc_databricks_evalueserve package.
               # See https://docs.databricks.com/dev-tools/bundles/library-dependencies.html
               # for more information on how to add other libraries.
-              - ../dist/*.whl
+              - ../../dist/*.whl

@@ -1,18 +1,15 @@
-# The main pipeline for poc_databricks_evalueserve
 
 resources:
   pipelines:
-    poc_databricks_evalueserve_etl:
-      name: poc_databricks_evalueserve_etl
+    renewable_energy_chile:
+      name: renewable_energy_chile
       catalog: ${var.catalog}
       schema: ${var.schema}
       serverless: true
-      root_path: "../src/poc_databricks_evalueserve_etl"
-
+      root_path: "../../src/renewable_energy_chile"
       libraries:
         - glob:
-            include: ../src/poc_databricks_evalueserve_etl/transformations/**
-
+            include: ../../src/renewable_energy_chile/transformations/**
       environment:
         dependencies:
           # We include every dependency defined by pyproject.toml by defining an editable environment
