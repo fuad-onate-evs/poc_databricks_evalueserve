@@ -3,10 +3,11 @@ from pyspark.sql.functions import *
 
 # 1. Define the source path (Unity Catalog Volume or External Location)
 # Replace with your actual path
-#env = 'dev'
-#volume = dbutils.widgets.get('catalog')
-#volume = spark.conf.get("volume")
-env :str = spark.conf.get("catalog")
+# env = 'dev'
+# volume = dbutils.widgets.get('catalog')
+# volume = spark.conf.get("volume")
+env: str = spark.conf.get("catalog", "dev")
+
 
 @dlt.table(
     # name="bronze_solar_coordinados",
@@ -69,9 +70,7 @@ def bronze_real_solar():
 )
 def bronze_reductions_preliminary_solar():
 
-    source_csv_path = (
-        f"/Volumes/{env}/bronze_renewable_energy/files_catalog/solar/reducciones/"
-    )
+    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/solar/reducciones/"
 
     return (
         spark.readStream.format("cloudFiles")
@@ -125,9 +124,7 @@ def bronze_coordinated_eolic():
 )
 def bronze_real_eolic():
 
-    source_csv_path = (
-        f"/Volumes/{env}/bronze_renewable_energy/files_catalog/eolic/real/"
-    )
+    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/eolic/real/"
 
     return (
         spark.readStream.format("cloudFiles")
@@ -155,9 +152,7 @@ def bronze_real_eolic():
 )
 def bronze_reductions_preliminary_eolic():
 
-    source_csv_path = (
-        f"/Volumes/{env}/bronze_renewable_energy/files_catalog/eolic/reducciones/"
-    )
+    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/eolic/reducciones/"
 
     return (
         spark.readStream.format("cloudFiles")
