@@ -1,12 +1,12 @@
+# Databricks notebook source
+# COMMAND ----------
 import dlt
 from pyspark.sql.functions import *
 
-# 1. Define the source path (Unity Catalog Volume or External Location)
-# Replace with your actual path
-# env = 'dev'
-# volume = dbutils.widgets.get('catalog')
-# volume = spark.conf.get("volume")
-env: str = spark.conf.get("catalog", "dev")
+# COMMAND ----------
+
+env: str = spark.conf.get("catalog")
+# COMMAND ----------
 
 
 @dlt.table(
@@ -37,6 +37,9 @@ def bronze_coordinated_solar():
     )
 
 
+# COMMAND ----------
+
+
 @dlt.table(
     # name="bronze_solar_real",
     table_properties={"layer": "bronze", "environment": "dev"},
@@ -63,6 +66,9 @@ def bronze_real_solar():
     )
 
 
+# COMMAND ----------
+
+
 @dlt.table(
     # name="bronze_solar_reducciones",
     table_properties={"layer": "bronze", "environment": "dev"},
@@ -87,6 +93,9 @@ def bronze_reductions_preliminary_solar():
             "'solar' as resource",
         )
     )
+
+
+# COMMAND ----------
 
 
 @dlt.table(
@@ -117,6 +126,9 @@ def bronze_coordinated_eolic():
     )
 
 
+# COMMAND ----------
+
+
 @dlt.table(
     # name="bronze_eolic_real",
     table_properties={"layer": "bronze", "environment": "dev"},
@@ -143,6 +155,9 @@ def bronze_real_eolic():
             "'eolic' as resource",
         )
     )
+
+
+# COMMAND ----------
 
 
 @dlt.table(

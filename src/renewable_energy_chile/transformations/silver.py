@@ -1,8 +1,10 @@
+# Databricks notebook source
+# COMMAND ----------
 import dlt
 from expectation import rules
 from pyspark.sql.functions import *
 
-
+# COMMAND ----------
 @dlt.view
 @dlt.expect_all_or_drop(rules)
 def silver_hub_planta_combined():
@@ -28,7 +30,7 @@ def silver_hub_planta_combined():
 
     return solar_df.union(eolic_df)
 
-
+# COMMAND ----------
 dlt.create_streaming_table("silver_renewable_energy.silver_hub_planta")
 
 dlt.apply_changes(
@@ -41,7 +43,6 @@ dlt.apply_changes(
     # SCD Type 1 overwrites existing rows with new data (effectively deleting the old dupe)
     stored_as_scd_type=1,
 )
-
 
 @dlt.view
 @dlt.expect_all_or_drop(rules)
@@ -68,7 +69,7 @@ def silver_hub_reductions_combined():
 
     return solar_df.union(eolic_df)
 
-
+# COMMAND ----------
 dlt.create_streaming_table("silver_renewable_energy.silver_hub_reductions")
 
 dlt.apply_changes(
@@ -108,7 +109,7 @@ def silver_hub_coordinated_combined():
 
     return solar_df.union(eolic_df)
 
-
+# COMMAND ----------
 dlt.create_streaming_table("silver_renewable_energy.silver_hub_coordinated")
 
 dlt.apply_changes(

@@ -1,0 +1,22 @@
+variables:
+  ###############################################################
+  # Dev variables
+  ###############################################################
+
+  dev_catalog:
+    description: catalog name
+    default: dev
+  dev_schema:
+    description: schema name
+    default: bronze_renewable_energy
+
+  ###############################################################
+  # prod variables
+  ###############################################################
+
+  prod_catalog:
+    description: catalog name
+    default: dev
+  prod_schema:
+    description: schema name
+    default: prod_renewable_energy
