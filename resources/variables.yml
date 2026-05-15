@@ -16,7 +16,7 @@ variables:
 
   prod_catalog:
     description: catalog name
-    default: dev
+    default: prod
   prod_schema:
     description: schema name
-    default: prod_renewable_energy
+    default: bronze_renewable_energy

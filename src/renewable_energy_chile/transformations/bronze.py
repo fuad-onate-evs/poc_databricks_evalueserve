@@ -11,7 +11,7 @@ env: str = spark.conf.get("catalog")
 
 @dlt.table(
     # name="bronze_solar_coordinados",
-    table_properties={"layer": "bronze", "environment": "dev"},
+    table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
 )
 def bronze_coordinated_solar():
@@ -42,7 +42,7 @@ def bronze_coordinated_solar():
 
 @dlt.table(
     # name="bronze_solar_real",
-    table_properties={"layer": "bronze", "environment": "dev"},
+    table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
 )
 def bronze_real_solar():
@@ -71,7 +71,7 @@ def bronze_real_solar():
 
 @dlt.table(
     # name="bronze_solar_reducciones",
-    table_properties={"layer": "bronze", "environment": "dev"},
+    table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
 )
 def bronze_reductions_preliminary_solar():
@@ -100,7 +100,7 @@ def bronze_reductions_preliminary_solar():
 
 @dlt.table(
     # name="bronze_coordinated_eolic",
-    table_properties={"layer": "bronze", "environment": "dev"},
+    table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
 )
 def bronze_coordinated_eolic():
@@ -131,7 +131,7 @@ def bronze_coordinated_eolic():
 
 @dlt.table(
     # name="bronze_eolic_real",
-    table_properties={"layer": "bronze", "environment": "dev"},
+    table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
 )
 def bronze_real_eolic():
@@ -162,7 +162,7 @@ def bronze_real_eolic():
 
 @dlt.table(
     # name="bronze_reductions_preliminary_eolic",
-    table_properties={"layer": "bronze", "environment": "dev"},
+    table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
 )
 def bronze_reductions_preliminary_eolic():

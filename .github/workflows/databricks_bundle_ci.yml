@@ -2,8 +2,11 @@ name: Databricks CI/CD
 
 on:
   workflow_dispatch:
+  pull_request_review:
+    types: [submitted]
 jobs:
   databricks_CI:
+    if: github.event.review.state == 'approved' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,6 +14,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+      - name: define dev enviroment 
+        run: echo "TARGET_ENV=dev" >> $GITHUB_ENV
+        if: ${{ github.event_name == 'workflow_dispatch' }} 
+      - name: define prod enviroment
+        run: echo "TARGET_ENV=prod" >> $GITHUB_ENV
+        if: ${{ github.event_name == 'pull_request_review' }}
       - name: Install Databricks CLI
         run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
       - name: Install uv
@@ -20,6 +29,6 @@ jobs:
       - name: Databricks Login
         run: printf '${{ secrets.DATABRICK_ACCESS_TOKEN }}' | databricks configure --host ${{ secrets.DATABRICKS_HOST }}
       - name: Validate Databricks Bundle
-        run: databricks bundle validate -t dev
+        run: databricks bundle validate -t $TARGET_ENV
       - name: Deploy Databricks
-        run: databricks bundle deploy -t dev
+        run: databricks bundle deploy -t $TARGET_ENV

@@ -40,7 +40,7 @@ targets:
       # We explicitly deploy to /Workspace/Users/andres.lagos@evalueserve.com to make sure we only have a single copy.
       root_path: /Workspace/Users/andres.lagos@evalueserve.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog: ${var.dev_catalog}
+      catalog: ${var.prod_catalog}
       schema: ${var.prod_schema}
     permissions:
       - user_name: andres.lagos@evalueserve.com
