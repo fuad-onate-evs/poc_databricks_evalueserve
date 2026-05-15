@@ -1,13 +1,13 @@
 # Databricks notebook source
-# COMMAND ----------
 import dlt
 from expectation import rules
 from pyspark.sql.functions import *
 
 # COMMAND ----------
+
 @dlt.view
 @dlt.expect_all_or_drop(rules)
-def silver_hub_planta_combined():
+def silver_hub_plant_combined():
     # Helper to apply the same transformation to both sources
     def get_source(table_path):
         return (
@@ -31,11 +31,12 @@ def silver_hub_planta_combined():
     return solar_df.union(eolic_df)
 
 # COMMAND ----------
-dlt.create_streaming_table("silver_renewable_energy.silver_hub_planta")
+
+dlt.create_streaming_table("silver_renewable_energy.silver_hub_plant")
 
 dlt.apply_changes(
-    target="silver_renewable_energy.silver_hub_planta",
-    source="silver_hub_planta_combined",
+    target="silver_renewable_energy.silver_hub_plant",
+    source="silver_hub_plant_combined",
     # Keys define what makes a record "unique" (deduplication keys)
     keys=["hash_key", "plant_name", "record_source", "value_date"],
     # sequence_by ensures that if a duplicate arrives, the latest one wins
@@ -70,6 +71,7 @@ def silver_hub_reductions_combined():
     return solar_df.union(eolic_df)
 
 # COMMAND ----------
+
 dlt.create_streaming_table("silver_renewable_energy.silver_hub_reductions")
 
 dlt.apply_changes(
@@ -110,6 +112,7 @@ def silver_hub_coordinated_combined():
     return solar_df.union(eolic_df)
 
 # COMMAND ----------
+
 dlt.create_streaming_table("silver_renewable_energy.silver_hub_coordinated")
 
 dlt.apply_changes(
@@ -137,7 +140,7 @@ def silver_link_measure():
     )
 
     df_a = (
-        spark.read.table("silver_renewable_energy.silver_hub_planta")
+        spark.read.table("silver_renewable_energy.silver_hub_plant")
         .select(col("plant_name").alias("plant_key"))
         .distinct()
     )
@@ -159,4 +162,56 @@ def silver_link_measure():
         joined_df.withColumn("record_date", current_date())
         .withColumn("hash_key", sha2(concat_ws("||", "coordinated_key", "plant_key", "reductions_key"), 256))
         .distinct()
+    )
+
+# COMMAND ----------
+
+@dlt.table(
+    name="silver_renewable_energy.silver_sat_measure",
+    comment="Consolidated silver hub table joining plants, reductions, and coordinated resources."
+)
+def silver_sat_measure():
+    
+    t1 = spark.read.table("silver_renewable_energy.silver_hub_plant")
+    t2 = spark.read.table("silver_renewable_energy.silver_hub_reductions")
+    t3 = spark.read.table("silver_renewable_energy.silver_hub_coordinated")
+
+    joined_df = t1.alias("t1").join(
+        t2.alias("t2"),
+        (col("t1.plant_name") == col("t2.plant_name")) & 
+        (col("t1.value_date") == col("t2.value_date")),
+        how="full_outer"
+    )
+
+
+    final_join = joined_df.join(
+        t3.alias("t3"),
+        (coalesce(col("t1.plant_name"), col("t2.plant_name")) == col("t3.plant_name")) &
+        (coalesce(col("t1.value_date"), col("t2.value_date")) == col("t3.value_date")),
+        how="full_outer"
+    )
+
+    return final_join.select(
+        sha2(
+            concat(
+                coalesce(col("t1.plant_name"), lit("")),
+                coalesce(col("t2.plant_name"), lit("")),
+                coalesce(col("t3.plant_name"), lit(""))
+            ), 256
+        ).alias("hash_measure_key"),
+        sha2(
+            concat(
+                coalesce(col("t1.plant_name"), lit("")),
+                coalesce(col("t2.plant_name"), lit("")),
+                coalesce(col("t3.plant_name"), lit("")),
+                coalesce(col("t1.value_date"), col("t2.value_date"), col("t3.value_date"))
+            ), 256
+        ).alias("diff_key"),
+        col("t1.plant_name").alias("plant_name"),
+        col("t2.plant_name").alias("reduction_name"),
+        col("t3.plant_name").alias("coordinated_name"),
+        coalesce(col("t1.value_date"), col("t2.value_date"), col("t3.value_date")).alias("value_date"),
+        col("t1.value").alias("plant_value"),
+        col("t2.value").alias("reduction_value"),
+        col("t3.value").alias("coordinated_value")
     )
