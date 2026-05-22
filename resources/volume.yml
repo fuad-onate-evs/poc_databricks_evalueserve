@@ -1,0 +1,6 @@
+resources:
+  volumes:
+    conglomerate_lookup:
+      name: lookup
+      catalog_name: ${var.catalog}
+      schema_name: ${var.conglomerate_schema}

@@ -1,14 +1,14 @@
 resources:
   pipelines:
-    renewable_energy_chile:
-      name: renewable_energy_chile
+    renewable_conglomerate:
+      name: renewable_conglomerate
       catalog: ${var.catalog}
-      schema: ${var.default_resource_schema}
+      schema:  ${var.conglomerate_schema}
       serverless: true
-      root_path: "../../src/renewable_energy_chile/transformations"
+      root_path: "../../src/renewable_conglomerate_energy/transformations"
       libraries:
         - glob:
-            include: ../../src/renewable_energy_chile/transformations/**
+            include: ../../src/renewable_conglomerate_energy/transformations/**
       environment:
         dependencies:
           # We include every dependency defined by pyproject.toml by defining an editable environment
@@ -16,4 +16,4 @@ resources:
           - --editable ${workspace.file_path}
       configuration:
         catalog: ${var.catalog}
-
+        schema: ${var.conglomerate_schema}

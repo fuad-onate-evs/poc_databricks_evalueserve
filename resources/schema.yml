@@ -1,0 +1,10 @@
+resources:
+  schemas:
+
+    bronze_conglomerate_energy:
+      name: bronze_conglomerate_energy
+      catalog_name: ${var.catalog}
+    
+    silver_conglomerate_energy:
+      name: silver_conglomerate_energy
+      catalog_name: ${var.catalog}

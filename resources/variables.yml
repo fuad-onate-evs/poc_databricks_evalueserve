@@ -1,4 +1,13 @@
 variables:
+
+  ##############################################################
+  ## Global variables
+  ##############################################################
+  
+  default_resource_schema:
+    description: schema name
+    default: bronze_renewable_energy
+
   ###############################################################
   # Dev variables
   ###############################################################
@@ -6,10 +15,10 @@ variables:
   dev_catalog:
     description: catalog name
     default: dev
-  dev_schema:
-    description: schema name
-    default: bronze_renewable_energy
 
+  dev_conglomerate_schema:
+    description: schema name
+    default: dev_${workspace.current_user.short_name}_bronze_conglomerate_energy
   ###############################################################
   # prod variables
   ###############################################################
@@ -17,6 +26,7 @@ variables:
   prod_catalog:
     description: catalog name
     default: prod
-  prod_schema:
+
+  prod_conglomerate_schema:
     description: schema name
-    default: bronze_renewable_energy
+    default: bronze_conglomerate_energy

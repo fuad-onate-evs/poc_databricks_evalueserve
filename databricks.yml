@@ -5,8 +5,11 @@ bundle:
   uuid: 84affba7-d507-4c16-b548-8bc783726643
 
 include:
-  - "./resources/pipeline/renewables_energy_chile_etl.pipeline.yml"
-  - "./resources/variables.yml"  
+  - "./resources/variables.yml"
+  - "./resources/schema.yml"
+  - "./resources/volume.yml"
+  - "./resources/pipeline/*"
+
 
 artifacts:
   python_artifact:
@@ -19,6 +22,8 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  conglomerate_schema:
+    description: conglomerate schema name
 
 targets:
   dev:
@@ -32,7 +37,8 @@ targets:
       host: https://dbc-54b27bae-2e91.cloud.databricks.com
     variables:
       catalog: ${var.dev_catalog}
-      schema: ${var.dev_schema}
+      schema: ${var.default_resource_schema}
+      conglomerate_schema: ${var.dev_conglomerate_schema}
   prod:
     mode: production
     workspace:
@@ -41,7 +47,8 @@ targets:
       root_path: /Workspace/Users/andres.lagos@evalueserve.com/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: ${var.prod_catalog}
-      schema: ${var.prod_schema}
+      schema: ${var.default_resource_schema}
+      conglomerate_schema: ${var.prod_conglomerate_schema}
     permissions:
       - user_name: andres.lagos@evalueserve.com
         level: CAN_MANAGE
