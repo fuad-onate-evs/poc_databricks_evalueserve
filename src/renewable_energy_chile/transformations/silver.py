@@ -2,6 +2,7 @@
 import dlt
 from expectation import rules
 from pyspark.sql.functions import *
+from modules import replace_comma,replace_N_char
 
 # COMMAND ----------
 
@@ -14,13 +15,13 @@ def silver_hub_plant_combined():
             spark.readStream.option("readChangeFeed", "true")
             .table(table_path)
             .selectExpr(
-                "sha2(`nombre`, 256) as hash_key",
-                "regexp_replace(nombre, '\\\ufffd', 'Ñ') as plant_name",  # reemplazar las Ñ por N, dejar nombres en MAYUS,
-                "to_timestamp(concat(date(fecha),' ',lpad(cast(hora as string), 2, '0'),':00:00.0')) as value_date",  # Cambiar nombre column a record_date
-                "valor as value",
+                "sha2(`nombre`, 256) as hash_key", 
+                "replace_N_sql(nombre) as plant_name", 
+                "to_timestamp(concat(date(fecha),' ',lpad(cast(hora as string), 2, '0'),':00:00.0')) as value_date", #Cambiar nombre column a record_date
+                "replace_comma_sql(valor) as value",
                 "current_timestamp() as load_date",
                 "file_path as record_source",
-                "resource",
+                "resource"
             )
         )
 
@@ -45,6 +46,9 @@ dlt.apply_changes(
     stored_as_scd_type=1,
 )
 
+
+# COMMAND ----------
+
 @dlt.view
 @dlt.expect_all_or_drop(rules)
 def silver_hub_reductions_combined():
@@ -54,13 +58,13 @@ def silver_hub_reductions_combined():
             spark.readStream.option("readChangeFeed", "true")
             .table(table_path)
             .selectExpr(
-                "sha2(`nombre`, 256) as hash_key",
-                "regexp_replace(nombre, '\\\ufffd', 'Ñ') as plant_name",
+                "sha2(`nombre`, 256) as hash_key", 
+                "replace_N_sql(nombre) as plant_name", 
                 "to_timestamp(concat(date(fecha),' ',hour(fecha),':00:00.0')) as value_date",
-                "valor as value",
+                "replace_comma_sql(valor) as value",
                 "current_timestamp() as load_date",
                 "file_path as record_source",
-                "resource",
+                "resource"
             )
         )
 
@@ -85,6 +89,7 @@ dlt.apply_changes(
     stored_as_scd_type=1,
 )
 
+# COMMAND ----------
 
 @dlt.view
 @dlt.expect_all_or_drop(rules)
@@ -95,13 +100,13 @@ def silver_hub_coordinated_combined():
             spark.readStream.option("readChangeFeed", "true")
             .table(table_path)
             .selectExpr(
-                "sha2(`nombre`, 256) as hash_key",
-                "regexp_replace(nombre, '\\\ufffd', 'Ñ') as plant_name",
+                "sha2(`nombre`, 256) as hash_key", 
+                "replace_N_sql(nombre) as plant_name",
                 "to_timestamp(concat(date(fecha),' ',hour(fecha),':00:00.0')) as value_date",
-                "valor as value",
+                "replace_comma_sql(valor) as value",
                 "current_timestamp() as load_date",
                 "file_path as record_source",
-                "resource",
+                "resource"
             )
         )
 
@@ -126,6 +131,7 @@ dlt.apply_changes(
     stored_as_scd_type=1,
 )
 
+# COMMAND ----------
 
 @dlt.table(
     name="silver_renewable_energy.silver_link_measure",
