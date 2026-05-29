@@ -4,21 +4,31 @@ variables:
   ## Global variables
   ##############################################################
   
-  default_resource_schema:
-    description: schema name
-    default: bronze_renewable_energy
 
   ###############################################################
   # Dev variables
   ###############################################################
 
   dev_catalog:
-    description: catalog name
+    description: development environment catalog name
     default: dev
 
   dev_conglomerate_schema:
-    description: schema name
+    description: schema name conglomerate domain
     default: dev_${workspace.current_user.short_name}_bronze_conglomerate_energy
+
+  dev_renewable_bronze_schema:
+    description: schema name bronze resource domain
+    default: dev_${workspace.current_user.short_name}_bronze_renewable_energy_chile
+
+  dev_renewable_silver_schema:
+    description: schema name bronze resource domain
+    default: dev_${workspace.current_user.short_name}_silver_renewable_energy_chile
+
+  dev_renewable_gold_schema:
+    description: schema name bronze resource domain
+    default: dev_${workspace.current_user.short_name}_gold_renewable_energy_chile
+
   ###############################################################
   # prod variables
   ###############################################################
@@ -30,3 +40,15 @@ variables:
   prod_conglomerate_schema:
     description: schema name
     default: bronze_conglomerate_energy
+
+  prod_renewable_bronze_schema:
+    description: schema name bronze resource domain
+    default: bronze_renewable_energy_chile
+
+  prod_renewable_silver_schema:
+    description: schema name bronze resource domain
+    default: silver_renewable_energy_chile
+
+  prod_renewable_gold_schema:
+    description: schema name bronze resource domain
+    default: gold_renewable_energy_chile

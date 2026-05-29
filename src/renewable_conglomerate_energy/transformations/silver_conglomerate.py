@@ -4,7 +4,7 @@ from pyspark import pipelines as dp
 import pyspark.sql.functions as F
 
 
-#TODO check column key format, expecific columns, add alias
+#TODO check key column generalization, expecific columns, add alias, add hash
 @dp.table(name = "silver_conglomerate_energy.silver_fact_energy_consumption",
           table_properties = {
                             "quality":"silver"

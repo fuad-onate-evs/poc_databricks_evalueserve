@@ -8,3 +8,16 @@ resources:
     silver_conglomerate_energy:
       name: silver_conglomerate_energy
       catalog_name: ${var.catalog}
+
+    bronze_renewable_energy_chile:
+      name: bronze_renewable_energy_chile
+      catalog_name: ${var.catalog}
+
+    silver_renewable_energy_chile:
+      name: silver_renewable_energy_chile
+      catalog_name: ${var.catalog}
+
+    gold_renewable_energy_chile:
+      name: gold_renewable_energy_chile
+      catalog_name: ${var.catalog}
+

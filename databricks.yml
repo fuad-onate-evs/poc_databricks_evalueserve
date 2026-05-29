@@ -19,9 +19,13 @@ artifacts:
 # Variable declarations. These variables are assigned in the dev/prod targets below.
 variables:
   catalog:
-    description: The catalog to use
-  schema:
-    description: The schema to use
+    description: The catalog name
+  bronze_resource_schema:
+    description: resource bronze schema
+  silver_resource_schema:
+    description: resource silver schema
+  gold_resource_schema:
+    description: resource silver gold
   conglomerate_schema:
     description: conglomerate schema name
 
@@ -37,7 +41,9 @@ targets:
       host: https://dbc-54b27bae-2e91.cloud.databricks.com
     variables:
       catalog: ${var.dev_catalog}
-      schema: ${var.default_resource_schema}
+      bronze_resource_schema: ${var.dev_renewable_bronze_schema}
+      silver_resource_schema: ${var.dev_renewable_silver_schema}
+      gold_resource_schema: ${var.dev_renewable_gold_schema}
       conglomerate_schema: ${var.dev_conglomerate_schema}
   prod:
     mode: production
@@ -47,7 +53,9 @@ targets:
       root_path: /Workspace/Users/andres.lagos@evalueserve.com/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: ${var.prod_catalog}
-      schema: ${var.default_resource_schema}
+      bronze_resource_schema: ${var.prod_renewable_bronze_schema}
+      silver_resource_schema: ${var.prod_renewable_silver_schema}
+      gold_resource_schema: ${var.prod_renewable_gold_schema}
       conglomerate_schema: ${var.prod_conglomerate_schema}
     permissions:
       - user_name: andres.lagos@evalueserve.com

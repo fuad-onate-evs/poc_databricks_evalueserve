@@ -6,6 +6,7 @@ from pyspark.sql.functions import *
 # COMMAND ----------
 
 env: str = spark.conf.get("catalog")
+schema : str = spark.conf.get("bronze_schema")
 # COMMAND ----------
 
 
@@ -16,7 +17,7 @@ env: str = spark.conf.get("catalog")
 )
 def bronze_coordinated_solar():
 
-    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/solar/coor/"
+    source_csv_path = f"/Volumes/{env}/{schema}/lookup/solar/coor/"
 
     return (
         spark.readStream.format("cloudFiles")
@@ -47,7 +48,7 @@ def bronze_coordinated_solar():
 )
 def bronze_real_solar():
 
-    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/solar/real/"
+    source_csv_path = f"/Volumes/{env}/{schema}/lookup/solar/real/"
 
     return (
         spark.readStream.format("cloudFiles")
@@ -76,7 +77,7 @@ def bronze_real_solar():
 )
 def bronze_reductions_preliminary_solar():
 
-    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/solar/reducciones/"
+    source_csv_path = f"/Volumes/{env}/{schema}/lookup/solar/reducciones/"
 
     return (
         spark.readStream.format("cloudFiles")
@@ -105,7 +106,7 @@ def bronze_reductions_preliminary_solar():
 )
 def bronze_coordinated_eolic():
 
-    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/eolic/coor/"
+    source_csv_path = f"/Volumes/{env}/{schema}/lookup/eolic/coor/"
 
     return (
         spark.readStream.format("cloudFiles")
@@ -136,7 +137,7 @@ def bronze_coordinated_eolic():
 )
 def bronze_real_eolic():
 
-    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/eolic/real/"
+    source_csv_path = f"/Volumes/{env}/{schema}/lookup/eolic/real/"
 
     return (
         spark.readStream.format("cloudFiles")
@@ -167,7 +168,7 @@ def bronze_real_eolic():
 )
 def bronze_reductions_preliminary_eolic():
 
-    source_csv_path = f"/Volumes/{env}/bronze_renewable_energy/files_catalog/eolic/reducciones/"
+    source_csv_path = f"/Volumes/{env}/{schema}/lookup/eolic/reducciones/"
 
     return (
         spark.readStream.format("cloudFiles")
