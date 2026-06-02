@@ -3,7 +3,7 @@ resources:
     renewable_conglomerate:
       name: renewable_conglomerate
       catalog: ${var.catalog}
-      schema:  ${var.conglomerate_schema}
+      schema:  ${var.conglomerate_bronze_schema}
       serverless: true
       root_path: "../../src/renewable_conglomerate_energy/transformations"
       libraries:
@@ -16,4 +16,6 @@ resources:
           - --editable ${workspace.file_path}
       configuration:
         catalog: ${var.catalog}
-        schema: ${var.conglomerate_schema}
+        bronze_schema: ${var.conglomerate_bronze_schema}
+        silver_schema: ${var.conglomerate_silver_schema}
+        gold_schema: ${var.conglomerate_gold_schema}

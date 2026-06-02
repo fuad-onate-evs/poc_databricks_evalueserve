@@ -48,9 +48,7 @@ def gold_monthly_measure():
         "avg_coordinated",
         "diff_real_coordinated"
     )
-
 # COMMAND ----------
-# DBTITLE 1,GOLD_DAILY_MEASURE
 @dlt.table(
     name=f"{gold_schema}.gold_daily_measure",
     comment="Calculations of daily average values."
@@ -78,7 +76,6 @@ def gold_daily_measure():
         "diff_real_coordinated"
     )
 # COMMAND ----------
-# DBTITLE 1,GOLD_WEEKLY_MEASURE
 @dlt.table(
     name=f"{gold_schema}.gold_weekly_measure",
     comment="Calculations of weekly average values using ISO 8601 week-numbering calendar."
@@ -120,9 +117,8 @@ def gold_weekly_measure():
         "diff_real_coordinated"
     )
 # COMMAND ----------
-# DBTITLE 1,DIFFERENT_REAL_COORDINATED
 @dlt.table(
-    name=f"{gold_schema}.different_real_coordinated",
+    name=f"{gold_schema}.gold_different_real_coordinated",
     comment="Applies rounding and percentage metrics from the daily measure table."
 )
 def different_real_coordinated():

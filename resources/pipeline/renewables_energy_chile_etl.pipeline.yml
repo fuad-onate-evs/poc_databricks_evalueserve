@@ -3,7 +3,9 @@ resources:
     renewable_energy_chile:
       name: renewable_energy_chile
       catalog: ${var.catalog}
-      schema: ${var.bronze_resource_schema}
+
+      schema: ${var.resource_bronze_schema}
+
       serverless: true
       root_path: "../../src/renewable_energy_chile/transformations"
       libraries:
@@ -16,7 +18,7 @@ resources:
           - --editable ${workspace.file_path}
       configuration:
         catalog: ${var.catalog}
-        bronze_schema: ${var.bronze_resource_schema}
-        silver_schema: ${var.silver_resource_schema}
-        gold_schema: ${var.gold_resource_schema}
+        bronze_schema: ${var.resource_bronze_schema}
+        silver_schema: ${var.resource_silver_schema}
+        gold_schema: ${var.resource_gold_schema}
 

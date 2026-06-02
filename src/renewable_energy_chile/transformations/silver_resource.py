@@ -1,21 +1,16 @@
 # Databricks notebook source
-# DBTITLE 1,Imports
-
-import dlt
 import sys
+import dlt
 from expectation import rules
 from pyspark.sql.functions import *
-from modules import replace_comma, replace_N_char
-from pyspark.sql.types import IntegerType
+# COMMAND ----------
 sys.path.append('../.')
-from helper import string_trasformation
+from helper import string_transformation
 
 # COMMAND ----------
-# DBTITLE 1,Variables
 bronze_schema : str = spark.conf.get("bronze_schema")
 silver_schema : str = spark.conf.get("silver_schema")
 # COMMAND ----------
-# DBTITLE 1,SILVER_HUB_PLANT
 @dlt.view
 @dlt.expect_all_or_drop(rules)
 def silver_hub_plant_combined():
@@ -27,9 +22,9 @@ def silver_hub_plant_combined():
             .select(["Nombre", "Fecha", "Hora", "valor", "file_path", "resource"])
             .withColumns({
                 "hash_key": sha2(col("Nombre"), 256),
-                "plant_name": string_trasformation.special_characters("Nombre"),
+                "plant_name": string_transformation.special_characters("Nombre"),
                 "value_date": to_timestamp(concat(date_format(col("Fecha"), "yyyy-MM-dd"), lit(" "), lpad(col("Hora"), 2, "0"), lit(":00:00.0"))),
-                "value": string_trasformation.change_comma_to_dot("valor"),
+                "value": string_transformation.change_comma_to_dot("valor"),
                 "load_date": current_timestamp(),
                 "record_source": col("file_path")
             })
@@ -68,9 +63,9 @@ def silver_hub_reductions_combined():
             .select(["Nombre", "Fecha", "valor", "file_path", "resource"])
             .withColumns({
                 "hash_key": sha2(col("Nombre"), 256),
-                "plant_name": string_trasformation.special_characters("Nombre"),
+                "plant_name": string_transformation.special_characters("Nombre"),
                 "value_date": to_timestamp(concat(date_format(col("Fecha"), "yyyy-MM-dd"), lit(" "), date_format(col("Fecha"), "HH"), lit(":00:00.0"))),
-                "value": string_trasformation.change_comma_to_dot("valor"),
+                "value": string_transformation.change_comma_to_dot("valor"),
                 "load_date": current_timestamp(),
                 "record_source": col("file_path")
             })
@@ -104,9 +99,9 @@ def silver_hub_coordinated_combined():
             .select(["Nombre", "Fecha", "valor", "file_path", "resource"])
             .withColumns({
                 "hash_key": sha2(col("Nombre"), 256),
-                "plant_name": string_trasformation.special_characters("Nombre"),
+                "plant_name": string_transformation.special_characters("Nombre"),
                 "value_date": to_timestamp(concat(date_format(col("Fecha"), "yyyy-MM-dd"), lit(" "), date_format(col("Fecha"), "HH"), lit(":00:00.0"))),
-                "value": string_trasformation.change_comma_to_dot("valor"),
+                "value": string_transformation.change_comma_to_dot("valor"),
                 "load_date": current_timestamp(),
                 "record_source": col("file_path")
             })

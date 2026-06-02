@@ -1,12 +1,12 @@
 # Databricks notebook source
 # COMMAND ----------
-import dlt
+from pyspark import pipelines as dp
 from pyspark.sql.functions import *
 
 # COMMAND ----------
 env = schema = str()
 env = spark.conf.get("catalog")
-schema = spark.conf.get("schema")
+schema = spark.conf.get("bronze_schema")
 
 raw_path = {"hydropower_consumption": f"/Volumes/{env}/{schema}/lookup/hydropower_consumption/",
             "installed_solar": f"/Volumes/{env}/{schema}/lookup/installed_solar/",
@@ -14,10 +14,10 @@ raw_path = {"hydropower_consumption": f"/Volumes/{env}/{schema}/lookup/hydropowe
             "modern_renewable_prod": f"/Volumes/{env}/{schema}/lookup/modern_renewable_prod/",
             "share_electricity_renewable": f"/Volumes/{env}/{schema}/lookup/share_electricity_renewable/"}
 
-##TODO add liquid cluster
 # COMMAND ----------
-@dlt.table(
-    table_properties={"quality": "bronze"}
+@dp.table(
+    table_properties={"quality": "bronze"},
+    cluster_by=['Entity', 'Year']
 )
 def bronze_hydropower_consumption():
 
@@ -37,8 +37,9 @@ def bronze_hydropower_consumption():
     )
 
 # COMMAND ----------
-@dlt.table(
-    table_properties={"quality": "bronze"}
+@dp.table(
+    table_properties={"quality": "bronze"},
+    cluster_by=['Entity', 'Year']
 )
 def bronze_installed_solar_PV_capacity():
 
@@ -58,8 +59,9 @@ def bronze_installed_solar_PV_capacity():
     )
 
 # COMMAND ----------
-@dlt.table(
-    table_properties={"quality": "bronze"}
+@dp.table(
+    table_properties={"quality": "bronze"},
+    cluster_by=['Entity', 'Year']
 )
 def bronze_modern_renewable_energy_consumption():
 
@@ -79,8 +81,9 @@ def bronze_modern_renewable_energy_consumption():
     )
 
 # COMMAND ----------
-@dlt.table(
-    table_properties={"quality": "bronze"}
+@dp.table(
+    table_properties={"quality": "bronze"},
+    cluster_by=['Entity', 'Year']
 )
 def bronze_modern_renewable_prod():
 
@@ -100,8 +103,9 @@ def bronze_modern_renewable_prod():
     )
 
 # COMMAND ----------
-@dlt.table(
-    table_properties={"quality": "bronze"}
+@dp.table(
+    table_properties={"quality": "bronze"},
+    cluster_by=['Entity', 'Year']
 )
 def bronze_share_electricity_renewable():
 

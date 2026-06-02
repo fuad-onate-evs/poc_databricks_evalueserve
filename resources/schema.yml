@@ -2,22 +2,22 @@ resources:
   schemas:
 
     bronze_conglomerate_energy:
-      name: bronze_conglomerate_energy
+      name: ${var.prod_conglomerate_bronze_schema}
       catalog_name: ${var.catalog}
     
     silver_conglomerate_energy:
-      name: silver_conglomerate_energy
+      name: ${var.prod_conglomerate_silver_schema}
       catalog_name: ${var.catalog}
 
     bronze_renewable_energy_chile:
-      name: bronze_renewable_energy_chile
+      name: ${var.prod_renewable_bronze_schema}
       catalog_name: ${var.catalog}
 
     silver_renewable_energy_chile:
-      name: silver_renewable_energy_chile
+      name: ${var.prod_renewable_silver_schema}
       catalog_name: ${var.catalog}
 
     gold_renewable_energy_chile:
-      name: gold_renewable_energy_chile
+      name: ${var.prod_renewable_gold_schema}
       catalog_name: ${var.catalog}
 

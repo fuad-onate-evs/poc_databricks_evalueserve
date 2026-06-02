@@ -3,9 +3,9 @@ resources:
     conglomerate_lookup:
       name: lookup
       catalog_name: ${var.catalog}
-      schema_name: ${var.conglomerate_schema}
+      schema_name: ${var.conglomerate_bronze_schema}
 
     reneable_energy_chile:
       name: lookup
       catalog_name: ${var.catalog}
-      schema_name: ${var.bronze_resource_schema}
+      schema_name: ${var.resource_bronze_schema}

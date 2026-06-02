@@ -20,14 +20,20 @@ artifacts:
 variables:
   catalog:
     description: The catalog name
-  bronze_resource_schema:
+
+  resource_bronze_schema:
     description: resource bronze schema
-  silver_resource_schema:
+  resource_silver_schema:
     description: resource silver schema
-  gold_resource_schema:
+  resource_gold_schema:
     description: resource silver gold
-  conglomerate_schema:
-    description: conglomerate schema name
+  conglomerate_bronze_schema:
+    description: conglomerate bronze schema
+  conglomerate_silver_schema:
+    description: conglomerate silver schema
+  conglomerate_gold_schema:
+    description: conglomerate silver gold
+
 
 targets:
   dev:
@@ -41,10 +47,14 @@ targets:
       host: https://dbc-54b27bae-2e91.cloud.databricks.com
     variables:
       catalog: ${var.dev_catalog}
-      bronze_resource_schema: ${var.dev_renewable_bronze_schema}
-      silver_resource_schema: ${var.dev_renewable_silver_schema}
-      gold_resource_schema: ${var.dev_renewable_gold_schema}
-      conglomerate_schema: ${var.dev_conglomerate_schema}
+
+      resource_bronze_schema: ${var.dev_renewable_bronze_schema}
+      resource_silver_schema: ${var.dev_renewable_silver_schema}
+      resource_gold_schema: ${var.dev_renewable_gold_schema}
+      conglomerate_bronze_schema: ${var.dev_conglomerate_bronze_schema}
+      conglomerate_silver_schema: ${var.dev_conglomerate_silver_schema}
+      conglomerate_gold_schema: ${var.dev_conglomerate_gold_schema}
+
   prod:
     mode: production
     workspace:
@@ -53,10 +63,13 @@ targets:
       root_path: /Workspace/Users/andres.lagos@evalueserve.com/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: ${var.prod_catalog}
-      bronze_resource_schema: ${var.prod_renewable_bronze_schema}
-      silver_resource_schema: ${var.prod_renewable_silver_schema}
-      gold_resource_schema: ${var.prod_renewable_gold_schema}
-      conglomerate_schema: ${var.prod_conglomerate_schema}
+      resource_bronze_schema: ${var.prod_renewable_bronze_schema}
+      resource_silver_schema: ${var.prod_renewable_silver_schema}
+      resource_gold_schema: ${var.prod_renewable_gold_schema}
+      conglomerate_bronze_schema: ${var.prod_conglomerate_bronze_schema}
+      conglomerate_silver_schema: ${var.prod_conglomerate_silver_schema}
+      conglomerate_gold_schema: ${var.prod_conglomerate_gold_schema}
+
     permissions:
       - user_name: andres.lagos@evalueserve.com
         level: CAN_MANAGE
