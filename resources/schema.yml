@@ -9,6 +9,10 @@ resources:
       name: ${var.prod_conglomerate_silver_schema}
       catalog_name: ${var.catalog}
 
+    gold_conglomerate_energy:
+      name: ${var.prod_conglomerate_gold_schema}
+      catalog_name: ${var.catalog}
+
     bronze_renewable_energy_chile:
       name: ${var.prod_renewable_bronze_schema}
       catalog_name: ${var.catalog}

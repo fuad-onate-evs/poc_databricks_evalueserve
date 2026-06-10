@@ -4,7 +4,7 @@ import dlt
 from expectation import rules
 from pyspark.sql.functions import *
 # COMMAND ----------
-sys.path.append('../.')
+sys.path.append('../../.')
 from helper import string_transformation
 
 # COMMAND ----------
