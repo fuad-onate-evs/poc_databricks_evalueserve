@@ -32,3 +32,5 @@ jobs:
         run: databricks bundle validate -t $TARGET_ENV
       - name: Deploy Databricks
         run: databricks bundle deploy -t $TARGET_ENV
+      - name: Run unit test
+        run: uv run main

@@ -1,10 +1,7 @@
 # Databricks notebook source
 # COMMAND ----------
 import dlt
-from expectation import rules
 from pyspark.sql.functions import *
-from pyspark.sql.types import DoubleType
-from modules import replace_comma
 # COMMAND ----------
 # DBTITLE 1,Variables
 silver_schema : str = spark.conf.get("silver_schema")
@@ -18,11 +15,6 @@ gold_schema : str = spark.conf.get("gold_schema")
 
 def gold_monthly_measure():
     df_source = dlt.read(f"{silver_schema}.silver_sat_measure")
-
-    # df_cleaned = df_source \
-        # .withColumn("plant_double", replace_comma("plant_value")) \
-        # .withColumn("reduction_double", replace_comma("reduction_value")) \
-        # .withColumn("coordinated_double", replace_comma("coordinated_value"))
 
     df_aggregated = df_source.groupBy(
         "hash_measure_key",

@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-main = "poc_databricks_evalueserve.main:main"
+main = "run_unit_tests:main"
 
 [build-system]
 requires = ["hatchling"]

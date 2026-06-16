@@ -5,6 +5,7 @@ dist/
 __pycache__/
 *.egg-info
 .venv/
+*.lock
 scratch/**
 !scratch/README.md
 **/explorations/**
