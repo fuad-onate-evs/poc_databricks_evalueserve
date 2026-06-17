@@ -54,9 +54,6 @@ def test_count_table_total_rows(table_name, total_count, target):
     #TODO change to pyspark function
     def count_table_total_rows():
         return spark.table(f"{target}.{table_name}").select(count("*").alias('total_rows'))
-        # return spark.sql(f"""
-        #     SELECT COUNT(*) AS total_rows FROM {target}.{table_name}
-        # """)
 # COMMAND ----------
 def test_check_percentage():
     @dp.table(name=f"{schema['gold']}.test_{target_table_different_percent}_total_rows_verification")
