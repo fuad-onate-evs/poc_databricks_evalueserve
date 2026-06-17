@@ -6,7 +6,12 @@ on:
     types: [submitted]
 jobs:
   databricks_CI:
-    if: github.event.review.state == 'approved' || github.event_name == 'workflow_dispatch'
+    # Manual dispatch (dev), OR an APPROVED review on a PR that targets main (prod).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request_review' &&
+       github.event.review.state == 'approved' &&
+       github.base_ref == 'main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,23 +19,24 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: define dev enviroment 
+      - name: Define dev environment
         run: echo "TARGET_ENV=dev" >> $GITHUB_ENV
-        if: ${{ github.event_name == 'workflow_dispatch' }} 
-      - name: define prod enviroment
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+      - name: Define prod environment
         run: echo "TARGET_ENV=prod" >> $GITHUB_ENV
         if: ${{ github.event_name == 'pull_request_review' }}
       - name: Install Databricks CLI
         run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: validate Databricks CLI
+      - name: Validate Databricks CLI
         run: databricks version
-      - name: Databricks Login
+      - name: Databricks login
         run: printf '${{ secrets.DATABRICK_ACCESS_TOKEN }}' | databricks configure --host ${{ secrets.DATABRICKS_HOST }}
-      - name: Validate Databricks Bundle
-        run: databricks bundle validate -t $TARGET_ENV
-      - name: Deploy Databricks
-        run: databricks bundle deploy -t $TARGET_ENV
-      - name: Run unit test
+      # Quality gate: unit tests must pass BEFORE any deploy.
+      - name: Run unit tests
         run: uv run main
+      - name: Validate Databricks bundle
+        run: databricks bundle validate -t $TARGET_ENV
+      - name: Deploy Databricks bundle
+        run: databricks bundle deploy -t $TARGET_ENV

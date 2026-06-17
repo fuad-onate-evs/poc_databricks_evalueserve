@@ -2,6 +2,7 @@
 # COMMAND ----------
 import dlt
 from pyspark.sql.functions import *
+from pyspark.sql.types import StringType
 # COMMAND ----------
 # DBTITLE 1,Variables
 silver_schema : str = spark.conf.get("silver_schema")

@@ -6,6 +6,10 @@ __pycache__/
 *.egg-info
 .venv/
 *.lock
+# Keep the uv lockfile tracked for reproducible installs (overrides *.lock above)
+!uv.lock
+# Local secrets (Trello/Databricks creds) — never commit
+.env
 scratch/**
 !scratch/README.md
 **/explorations/**
