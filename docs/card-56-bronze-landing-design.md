@@ -32,14 +32,14 @@ union into the existing plant hubs.
 
 ## 2. Options to land the Kafka stream on bronze
 
-### Option A — Kafka → UC Volume (landing zone) → Auto Loader  ✅ recommended for the PoC
+### Option A — (poller) → UC Volume (landing zone) → Auto Loader  ✅ recommended (free + native; see §3)
 A lightweight consumer (or Kafka Connect / Spark `foreachBatch` sink) writes micro-batch files
 (JSON or CSV) into a **new** Volume path, e.g. `/Volumes/{catalog}/{bronze_schema}/lookup/dgf_met/<station>/`,
 and a **new `@dlt.table`** ingests them with the *same* Auto Loader pattern as today.
 
 - **Pros:** maximum consistency with existing bronze code; keeps `_metadata` lineage, schema evolution, and the
   triggered-pipeline model; **decouples** Kafka uptime from pipeline runtime (files are replayable → easy backfill);
-  cheapest (no always-on cluster). Per-minute met data is low-volume, so a ~1-file-per-minute cadence is fine.
+  cheapest (no always-on cluster, no broker). Hourly met data is low-volume, so a 1-file-per-hour cadence is trivial.
 - **Cons:** one extra hop (Kafka→files) adds ≈ the flush interval of latency; risk of **small-file** sprawl →
   mitigate by batching (1 file/min or /5-min) + periodic `OPTIMIZE`.
 
@@ -60,29 +60,44 @@ Streaming job) for the DGF Kafka source → its own bronze Delta table; downstre
 
 ---
 
-## 3. Recommendation
+## 3. Recommendation — free + Databricks-native, hourly
 
-**Adopt Option A for the PoC**, isolated as a new bronze table + new Volume landing path, and add a clear migration
-path to **Option B/continuous** if/when **sub-minute latency** becomes a hard requirement.
+With **hourly** as the agreed cadence (see the discovery report) and a goal of **maximising
+Databricks-native features at minimum cost**, the recommended landing is **Option A made fully
+native and serverless** — and, for hourly data, **drop the managed Kafka broker** (it is avoidable cost):
 
-Rationale: it reuses the team's proven Auto Loader/Volume/DLT pattern, preserves lineage and schema-evolution
-behaviour, keeps the stream **replayable** (critical for a PoC), and avoids always-on cost — while per-minute
-meteorological volume is small enough that the file-hop latency is acceptable. Promote to Option B only when the
-file-flush latency or small-file overhead is proven to be the bottleneck.
+> **Databricks Job (poller) → UC Volume (JSON) → Auto Loader DLT bronze, run triggered / `Trigger.AvailableNow` hourly.**
 
-### Concrete shape (Option A)
+Why this is both the cheapest *and* the most Databricks-native:
+- **No managed Kafka broker** (💲) — for hourly volume a broker adds cost + ops with no benefit. A small **Databricks
+  Job** task polls `api.minenergia.cl` hourly and lands JSON in a **UC Volume**. *(If a Kafka hop is mandated by the
+  brief, the broker is the only paid part — read it natively, see "If Kafka is required" below.)*
+- **No always-on compute** — the DLT pipeline runs **triggered / `Trigger.AvailableNow`** on an hourly schedule, not continuous.
+- **All included features (💚):** Auto Loader, DLT streaming tables + expectations, **secret scopes**, schema evolution,
+  `_metadata` lineage, replayable files for easy backfill — consistent with the existing bronze code.
+
+See [`databricks-features-medallion.md`](databricks-features-medallion.md) for the broader free-first feature map.
+
+### Concrete shape (recommended)
+- **Poller:** a **Databricks Job** Python task (serverless or smallest single-node) calls `api.minenergia.cl` hourly;
+  the API **token lives in a Databricks secret scope** (`${secrets/…}`), not `.env`.
 - **Landing zone:** new Volume `dgf_met` under the resource bronze schema (extend [volume.yml](../resources/volume.yml));
-  partition by `station/date/hour` to bound small files.
-- **Format:** prefer **JSON** (carries nested met readings + event timestamp cleanly) with
-  `cloudFiles.inferColumnTypes` + `schemaEvolutionMode=addNewColumns`.
-- **Bronze table:** new `@dlt.table bronze_dgf_met()` in the resource pipeline mirroring the existing functions,
-  selecting `*`, `_metadata.file_path AS file_path`, `_metadata.file_modification_time AS modification_date`, and a
-  literal `source='dgf'`; keep the **event-time** field from the payload for downstream hourly/minute bucketing.
-- **Cadence:** set the resource pipeline to **continuous**, or trigger the job every N minutes, for the high-freq table.
-- **Kafka→Volume bridge:** a small poller/consumer (the discovery PoC script) producing to a topic + a sink writing
-  batched files; or Kafka Connect with a cloud-storage sink mapped to the Volume's external location.
-- **DQ:** extend [expectation.py](../src/renewable_energy_chile/transformations/expectation.py) with met-specific rules
-  (non-null station, value ranges, recent event-time).
+  lay out files by `station/date/hour`.
+- **Format:** **JSON** (nested met readings + event timestamp) with `cloudFiles.inferColumnTypes`,
+  `schemaEvolutionMode=addNewColumns`, and `rescuedDataColumn` for malformed rows.
+- **Bronze table:** new `@dlt.table bronze_dgf_met()` mirroring the existing Auto Loader functions — select `*`,
+  `_metadata.file_path AS file_path`, `_metadata.file_modification_time AS modification_date`, literal `source='dgf'`;
+  keep the payload **event-time** for hourly bucketing. Use **`@dlt.append_flow`** if multiplexing multiple stations.
+- **Cadence:** pipeline **triggered / `AvailableNow`** on an **hourly** job schedule (cheap; no always-on).
+- **DQ:** extend [expectation.py](../src/renewable_energy_chile/transformations/expectation.py) with met rules
+  (non-null station, value ranges, recent event-time); **quarantine** rejects rather than drop.
+- **Perf (free):** `CLUSTER BY AUTO` + deletion vectors on the new tables.
+
+### If Kafka is required (Option B, native)
+If the `→ Kafka →` hop must stay, read it the Databricks-native way: a bronze `@dlt.table` with a **Kafka source**
+(`read_kafka` / `readStream.format("kafka")`), broker creds in a **secret scope**, pipeline **triggered hourly** (not
+continuous). The **broker is the only added cost (💲)**; the Databricks side stays free/included. Substitute
+`topic/partition/offset` for the `file_path` lineage.
 
 ---
 
