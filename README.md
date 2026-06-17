@@ -80,6 +80,7 @@ Design and discovery notes live in [`docs/`](docs/):
 - [`card-56-dgf-data-acquisition-discovery.md`](docs/card-56-dgf-data-acquisition-discovery.md) — how to acquire U. de Chile (DGF) meteorological data (hourly; primary source `api.minenergia.cl`).
 - [`card-56-bronze-landing-design.md`](docs/card-56-bronze-landing-design.md) — landing a Kafka stream on bronze within the current architecture.
 - [`repo-improvements.md`](docs/repo-improvements.md) — prioritized repo/bundle improvement backlog.
+- [`databricks-features-medallion.md`](docs/databricks-features-medallion.md) — cost-aware Databricks feature-adoption checklist for the medallion.
 
 ## Development notes
 
