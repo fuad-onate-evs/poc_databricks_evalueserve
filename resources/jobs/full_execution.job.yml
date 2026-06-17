@@ -18,8 +18,5 @@ resources:
           pipeline_task:
             pipeline_id: ${resources.pipelines.renewable_conglomerate.id}
         - task_key: pipeline_energy_chile
-          #this should be in parallel
-          depends_on:
-            - task_key: pipeline_conglomerate
           pipeline_task:
             pipeline_id: ${resources.pipelines.renewable_energy_chile.id}
