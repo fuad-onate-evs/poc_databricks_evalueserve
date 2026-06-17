@@ -118,7 +118,7 @@ dlt.create_streaming_table(f"{silver_schema}.silver_hub_coordinated")
 dlt.apply_changes(
     target=f"{silver_schema}.silver_hub_coordinated",
     source="silver_hub_coordinated_combined",
-    keys=["hash_key"],
+    keys=["hash_key", "plant_name", "record_source", "value_date"],
     sequence_by="load_date",
     stored_as_scd_type=1,
 )
@@ -189,26 +189,30 @@ def silver_sat_measure():
     )
 
     return final_join \
-            .select("t1.plant_name", "t2.plant_name", "t3.plant_name", "t1.value_date", "t2.value_date", "t3.value_date", "t1.value", "t2.value", "t3.value") \
+            .select(
+                col("t1.plant_name").alias("real_name"),
+                col("t2.plant_name").alias("reduction_name"),
+                col("t3.plant_name").alias("coordinated_name"),
+                col("t1.value_date").alias("real_date"),
+                col("t2.value_date").alias("reduction_date"),
+                col("t3.value_date").alias("coordinated_date"),
+                col("t1.value").alias("plant_value"),
+                col("t2.value").alias("reduction_value"),
+                col("t3.value").alias("coordinated_value"),
+            ) \
             .withColumns({
                 "hash_measure_key": sha2(concat(
-                    coalesce(col("t1.plant_name"), lit("")),
-                    coalesce(col("t2.plant_name"), lit("")),
-                    coalesce(col("t3.plant_name"), lit(""))
+                    coalesce(col("real_name"), lit("")),
+                    coalesce(col("reduction_name"), lit("")),
+                    coalesce(col("coordinated_name"), lit(""))
                     ), 256),
                 "diff_key": sha2(concat(
-                        coalesce(col("t1.plant_name"), lit("")),
-                        coalesce(col("t2.plant_name"), lit("")),
-                        coalesce(col("t3.plant_name"), lit("")),
-                        coalesce(col("t1.value_date"), col("t2.value_date"), col("t3.value_date"))
+                        coalesce(col("real_name"), lit("")),
+                        coalesce(col("reduction_name"), lit("")),
+                        coalesce(col("coordinated_name"), lit("")),
+                        coalesce(col("real_date"), col("reduction_date"), col("coordinated_date"))
                     ), 256),
-                "real_name": col("t1.plant_name"),
-                "reduction_name": col("t2.plant_name"),
-                "coordinated_name": col("t3.plant_name"),
-                "record_date": coalesce(col("t1.value_date"), col("t2.value_date"), col("t3.value_date")),
-                "plant_value": col("t1.value"),
-                "reduction_value": col("t2.value"),
-                "coordinated_value": col("t3.value")
+                "record_date": coalesce(col("real_date"), col("reduction_date"), col("coordinated_date")),
             }) \
             .select("hash_measure_key", "diff_key", "real_name", "reduction_name", "coordinated_name", "record_date", "plant_value", "reduction_value", "coordinated_value") \
             .distinct()
