@@ -5,6 +5,11 @@ dist/
 __pycache__/
 *.egg-info
 .venv/
+
+# Secrets — never commit or sync to the Databricks workspace
+.env
+.env.*
+
 *.lock
 scratch/**
 !scratch/README.md

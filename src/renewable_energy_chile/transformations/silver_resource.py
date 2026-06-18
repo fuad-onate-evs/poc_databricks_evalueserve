@@ -10,6 +10,20 @@ from helper import string_transformation
 # COMMAND ----------
 bronze_schema : str = spark.conf.get("bronze_schema")
 silver_schema : str = spark.conf.get("silver_schema")
+
+# Column-level data dictionary for the Data Vault hubs. apply_changes (SCD type 1)
+# emits exactly these 7 columns; declaring the schema only adds COMMENTs so every
+# hub field is documented in Catalog Explorer.
+def _hub_schema(value_desc: str) -> str:
+    return (
+        "hash_key STRING COMMENT 'SHA-256 surrogate key of the plant name (Data Vault hub key).', "
+        "plant_name STRING COMMENT 'Normalized plant name (uppercased, special characters cleaned).', "
+        "value_date TIMESTAMP COMMENT 'Measurement timestamp (built from Fecha + Hora).', "
+        f"value DOUBLE COMMENT '{value_desc}', "
+        "load_date TIMESTAMP COMMENT 'ETL load timestamp (current_timestamp at silver load); the SCD sequence key.', "
+        "record_source STRING COMMENT 'Lineage: source file path the row was ingested from.', "
+        "resource STRING COMMENT 'Energy type: solar or eolic.'"
+    )
 # COMMAND ----------
 @dlt.view
 @dlt.expect_all_or_drop(rules)
@@ -39,7 +53,10 @@ def silver_hub_plant_combined():
     return solar_df.union(eolic_df)
 
 
-dlt.create_streaming_table(f"{silver_schema}.silver_hub_plant")
+dlt.create_streaming_table(
+    f"{silver_schema}.silver_hub_plant",
+    schema=_hub_schema("Real (actual measured) generation value."),
+)
 
 dlt.apply_changes(
     target=f"{silver_schema}.silver_hub_plant",
@@ -77,7 +94,10 @@ def silver_hub_reductions_combined():
 
     return solar_df.union(eolic_df)
 
-dlt.create_streaming_table(f"{silver_schema}.silver_hub_reductions")
+dlt.create_streaming_table(
+    f"{silver_schema}.silver_hub_reductions",
+    schema=_hub_schema("Reducciones (curtailment) value."),
+)
 
 dlt.apply_changes(
     target=f"{silver_schema}.silver_hub_reductions",
@@ -113,7 +133,10 @@ def silver_hub_coordinated_combined():
 
     return solar_df.union(eolic_df)
 
-dlt.create_streaming_table(f"{silver_schema}.silver_hub_coordinated")
+dlt.create_streaming_table(
+    f"{silver_schema}.silver_hub_coordinated",
+    schema=_hub_schema("Coordinado (programmed/dispatched) generation value."),
+)
 
 dlt.apply_changes(
     target=f"{silver_schema}.silver_hub_coordinated",

@@ -9,11 +9,39 @@ env: str = spark.conf.get("catalog")
 schema : str = spark.conf.get("bronze_schema")
 # COMMAND ----------
 
+# Column-level data dictionary for the raw bronze tables. These mirror the
+# Auto Loader-inferred schema exactly (same column order + types) and only add
+# COMMENTs, so every field is documented in Catalog Explorer without changing
+# ingestion behaviour. Auto Loader still rescues unexpected columns into
+# _rescued_data, and schemaEvolutionMode keeps handling genuinely new columns.
+_BRONZE_TAIL = (
+    "valor STRING COMMENT 'Measured generation value (raw; Spanish decimal with a comma, e.g. 442,9).', "
+    "_rescued_data STRING COMMENT 'Auto Loader rescued data: source values that did not match the inferred schema.', "
+    "modification_date TIMESTAMP COMMENT 'Source file modification time (_metadata.file_modification_time) — ingestion freshness.', "
+    "file_path STRING COMMENT 'Source CSV path (_metadata.file_path) — record provenance / lineage.', "
+    "resource STRING COMMENT 'Energy type tag added at bronze: solar or eolic.'"
+)
+# real-generation tables carry an explicit Hora column and a DATE Fecha.
+SCHEMA_REAL = (
+    "Nombre STRING COMMENT 'Plant name (raw, from the source CSV).', "
+    "Fecha DATE COMMENT 'Measurement date (raw, from the source CSV).', "
+    "Hora INT COMMENT 'Hour of day 0-23 (raw; real-generation tables only).', "
+    + _BRONZE_TAIL
+)
+# coordinated + reductions tables carry a TIMESTAMP Fecha and no Hora.
+SCHEMA_COOR_RED = (
+    "Nombre STRING COMMENT 'Plant name (raw, from the source CSV).', "
+    "Fecha TIMESTAMP COMMENT 'Measurement timestamp (raw, from the source CSV).', "
+    + _BRONZE_TAIL
+)
+# COMMAND ----------
+
 
 @dlt.table(
     # name="bronze_solar_coordinados",
     table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
+    schema=SCHEMA_COOR_RED,
 )
 def bronze_coordinated_solar():
 
@@ -45,6 +73,7 @@ def bronze_coordinated_solar():
     # name="bronze_solar_real",
     table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
+    schema=SCHEMA_REAL,
 )
 def bronze_real_solar():
 
@@ -74,6 +103,7 @@ def bronze_real_solar():
     # name="bronze_solar_reducciones",
     table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
+    schema=SCHEMA_COOR_RED,
 )
 def bronze_reductions_preliminary_solar():
 
@@ -103,6 +133,7 @@ def bronze_reductions_preliminary_solar():
     # name="bronze_coordinated_eolic",
     table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
+    schema=SCHEMA_COOR_RED,
 )
 def bronze_coordinated_eolic():
 
@@ -134,6 +165,7 @@ def bronze_coordinated_eolic():
     # name="bronze_eolic_real",
     table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
+    schema=SCHEMA_REAL,
 )
 def bronze_real_eolic():
 
@@ -165,6 +197,7 @@ def bronze_real_eolic():
     # name="bronze_reductions_preliminary_eolic",
     table_properties={"layer": "bronze"},
     comment="Ingesting raw CSV files into Unity Catalog using Auto Loader",
+    schema=SCHEMA_COOR_RED,
 )
 def bronze_reductions_preliminary_eolic():
 
