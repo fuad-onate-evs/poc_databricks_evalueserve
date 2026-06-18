@@ -82,6 +82,13 @@ Design and discovery notes live in [`docs/`](docs/):
 - [`repo-improvements.md`](docs/repo-improvements.md) — prioritized repo/bundle improvement backlog.
 - [`databricks-features-medallion.md`](docs/databricks-features-medallion.md) — cost-aware Databricks feature-adoption checklist for the medallion.
 
+## Observability & exploration
+
+- **Pipeline monitoring** — the **DLT / Lakeflow pipeline UI** (Jobs & Pipelines → your pipeline) is the built-in observability app: flow graph, throughput, data-quality **expectations**, and the **event log**.
+- **Medallion-health dashboard** — an **AI/BI dashboard** can track row counts, freshness and DQ per layer across both domains (built via the `lakeview` API; auto-flags issues such as the coordinated-SCD defect). See [`docs/databricks-features-medallion.md`](docs/databricks-features-medallion.md).
+- **Ad-hoc exploration** — [`scripts/explore_sample_data.py`](scripts/explore_sample_data.py) queries the medallion tables via **Databricks Connect** (serverless, no warehouse) and prints rows; or use the **Databricks VS Code extension** Catalog Explorer / the SQL Editor.
+- **Sample data** — exercise the whole medallion without the real feed by dropping `;`-CSVs (resource) / `,`-CSVs (conglomerate) into the bronze `lookup` Volume and running the pipeline.
+
 ## Development notes
 
 - Dependencies are locked in **`uv.lock`** (committed) — use `uv sync --frozen` for reproducible installs.
