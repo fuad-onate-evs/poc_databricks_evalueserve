@@ -11,6 +11,8 @@ resources:
       libraries:
         - glob:
             include: ../../src/renewable_energy_chile/transformations/**
+        - glob:
+            include: ../../tests/integration_test/integration_renewable_energy
       environment:
         dependencies:
           # We include every dependency defined by pyproject.toml by defining an editable environment
