@@ -24,29 +24,29 @@ dict_table_name = {'bronze_renewable_prod':f'{bronze_schema}.bronze_modern_renew
 ##TODO add foreign key
 table_schema = {
             'silver_dim_country':"""
-                hash_key STRING NOT NULL PRIMARY KEY,
-                entity STRING
+                hash_key STRING NOT NULL COMMENT 'SHA-256 surrogate key of the country (Data Vault hub key).' PRIMARY KEY,
+                entity STRING COMMENT 'Country or region name (generalized).'
                 """,
             'silver_fact_energy_consumption':"""
-                hash_key STRING NOT NULL PRIMARY KEY,
-                year SMALLINT,
-                diff_hash STRING,
-                electricity_from_hydro DOUBLE,
-                geo_biomass_other DOUBLE,
-                solar_generation DOUBLE,
-                wind_generation DOUBLE,
-                hydro_generation DOUBLE
+                hash_key STRING NOT NULL COMMENT 'SHA-256 country key (FK to silver_dim_country).' PRIMARY KEY,
+                year SMALLINT COMMENT 'Calendar year.',
+                diff_hash STRING COMMENT 'Hash of entity+year for change detection (Data Vault diff key).',
+                electricity_from_hydro DOUBLE COMMENT 'Electricity generated from hydro.',
+                geo_biomass_other DOUBLE COMMENT 'Generation from geothermal, biomass and other sources.',
+                solar_generation DOUBLE COMMENT 'Solar generation.',
+                wind_generation DOUBLE COMMENT 'Wind generation.',
+                hydro_generation DOUBLE COMMENT 'Hydropower generation.'
                 """,
             'silver_fact_energy_production':"""
-                hash_key STRING NOT NULL PRIMARY KEY,
-                year SMALLINT,
-                diff_hash STRING,
-                solar_capacity DOUBLE,
-                electricity_from_wind DOUBLE,
-                electricity_from_hydro DOUBLE,
-                electricity_from_solar DOUBLE,
-                other_renewables_including_bioenergy DOUBLE,
-                renewables DOUBLE
+                hash_key STRING NOT NULL COMMENT 'SHA-256 country key (FK to silver_dim_country).' PRIMARY KEY,
+                year SMALLINT COMMENT 'Calendar year.',
+                diff_hash STRING COMMENT 'Hash of entity+year for change detection (Data Vault diff key).',
+                solar_capacity DOUBLE COMMENT 'Installed solar PV capacity.',
+                electricity_from_wind DOUBLE COMMENT 'Electricity generated from wind.',
+                electricity_from_hydro DOUBLE COMMENT 'Electricity generated from hydro.',
+                electricity_from_solar DOUBLE COMMENT 'Electricity generated from solar.',
+                other_renewables_including_bioenergy DOUBLE COMMENT 'Other renewables including bioenergy.',
+                renewables DOUBLE COMMENT 'Total renewables share / generation.'
                 """}
 expentetion_rules = {
             'silve_dim_country':

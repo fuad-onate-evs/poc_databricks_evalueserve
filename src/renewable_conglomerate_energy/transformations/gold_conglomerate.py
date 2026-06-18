@@ -21,30 +21,30 @@ dict_table_name = {'silver_dim_country': f'{silver_schema}.silver_dim_country'
 # COMMAND ----------
 table_schema = {
                 'gold_increase_consumption':f"""
-                    hash_key STRING NOT NULL PRIMARY KEY,
-                    year SMALLINT,
-                    increase_electricity_from_hydro DOUBLE,
-                    increase_geo_biomass_other DOUBLE,
-                    increase_solar_generation DOUBLE,
-                    increase_wind_generation DOUBLE,
-                    increase_hydro_generation DOUBLE,
+                    hash_key STRING NOT NULL COMMENT 'SHA-256 country key (FK to silver_dim_country).' PRIMARY KEY,
+                    year SMALLINT COMMENT 'Calendar year.',
+                    increase_electricity_from_hydro DOUBLE COMMENT 'Year-over-year increase in electricity from hydro.',
+                    increase_geo_biomass_other DOUBLE COMMENT 'Year-over-year increase in geothermal/biomass/other generation.',
+                    increase_solar_generation DOUBLE COMMENT 'Year-over-year increase in solar generation.',
+                    increase_wind_generation DOUBLE COMMENT 'Year-over-year increase in wind generation.',
+                    increase_hydro_generation DOUBLE COMMENT 'Year-over-year increase in hydropower generation.',
                     CONSTRAINT fk_hash_key_gold_consumption FOREIGN KEY (hash_key) REFERENCES {dict_table_name['silver_dim_country']}(hash_key)
                 """,
                 'gold_increase_production': f"""
-                    hash_key STRING NOT NULL PRIMARY KEY,
-                    year SMALLINT,
-                    increase_solar_capacity DOUBLE,
-                    increase_electricity_from_wind DOUBLE,
-                    increase_electricity_from_hydro DOUBLE,
-                    increase_electricity_from_solar DOUBLE,
-                    increase_other_renewables_including_bioenergy DOUBLE,
-                    increase_renewables DOUBLE,
+                    hash_key STRING NOT NULL COMMENT 'SHA-256 country key (FK to silver_dim_country).' PRIMARY KEY,
+                    year SMALLINT COMMENT 'Calendar year.',
+                    increase_solar_capacity DOUBLE COMMENT 'Year-over-year increase in installed solar PV capacity.',
+                    increase_electricity_from_wind DOUBLE COMMENT 'Year-over-year increase in electricity from wind.',
+                    increase_electricity_from_hydro DOUBLE COMMENT 'Year-over-year increase in electricity from hydro.',
+                    increase_electricity_from_solar DOUBLE COMMENT 'Year-over-year increase in electricity from solar.',
+                    increase_other_renewables_including_bioenergy DOUBLE COMMENT 'Year-over-year increase in other renewables including bioenergy.',
+                    increase_renewables DOUBLE COMMENT 'Year-over-year increase in total renewables.',
                     CONSTRAINT fk_hash_key_gold_production FOREIGN KEY (hash_key) REFERENCES {dict_table_name['silver_dim_country']}(hash_key)
                 """,
                 'gold_different_chile': """
-                    year SMALLINT,
-                    chile_vs_latam DOUBLE,
-                    chile_vs_world DOUBLE
+                    year SMALLINT COMMENT 'Calendar year.',
+                    chile_vs_latam DOUBLE COMMENT 'Chile renewables minus LATAM (South America).',
+                    chile_vs_world DOUBLE COMMENT 'Chile renewables minus World.'
                 """}
 # COMMAND ----------
 @dp.materialized_view(name = dict_table_name['gold_increase_consumption'],
