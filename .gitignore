@@ -5,6 +5,12 @@ dist/
 __pycache__/
 *.egg-info
 .venv/
+
+# Secrets — never commit (the DGF poller + Trello tooling read creds from .env)
+.env
+.env.*
+_dgf_landing/
+
 *.lock
 scratch/**
 !scratch/README.md
