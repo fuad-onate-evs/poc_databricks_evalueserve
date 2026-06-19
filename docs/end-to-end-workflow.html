@@ -99,6 +99,8 @@ function App() {
         <p className="text-sm text-slate-500">Chilean renewable-energy medallion on Databricks · click any node for details · toggle the ingestion mode to see where Kafka fits.</p>
       </header>
 
+      <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11.5px] text-amber-800">⚠ Synthetic sample data — the real DGF feed is pending approval (card #56); treat magnitudes as placeholders.</div>
+
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xs font-medium text-slate-500">Ingestion mode:</span>
         <div className="inline-flex rounded-lg bg-slate-100 p-1 text-xs">
@@ -114,6 +116,16 @@ function App() {
         <span className="text-xs text-slate-400">
           {mode==='batch' ? 'Poller lands files in a UC Volume → Auto Loader. No broker.' : 'Poller publishes to Kafka → read natively by bronze. Always-on.'}
         </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 mb-3 text-[11px] text-slate-500">
+        <span><i className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{background:'#0284c7'}}></i>Sources</span>
+        <span><i className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{background:'#7c3aed'}}></i>Ingestion</span>
+        <span><i className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{background:'#b45309'}}></i>Bronze</span>
+        <span><i className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{background:'#475569'}}></i>Silver</span>
+        <span><i className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{background:'#a16207'}}></i>Gold</span>
+        <span><i className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{background:'#059669'}}></i>Consumption</span>
+        <span><i className="inline-block w-2.5 h-2.5 rounded-sm border border-dashed border-amber-400 align-middle mr-1"></i>dashed = optional (Kafka)</span>
       </div>
 
       {/* flow */}
