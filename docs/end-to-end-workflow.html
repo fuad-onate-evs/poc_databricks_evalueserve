@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Renewable-Energy PoC — End-to-End Data Workflow</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .node { transition: transform .12s ease, box-shadow .12s ease, opacity .2s ease; cursor: pointer; }
+  .node:hover { transform: translateY(-2px); }
+  .flow { background:
+    linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%); }
+  .arrow-dash { background-image: linear-gradient(90deg,#f59e0b 60%,transparent 0); background-size: 10px 2px; background-repeat: repeat-x; }
+</style>
+</head>
+<body class="flow min-h-screen text-slate-800">
+<div id="root" class="max-w-6xl mx-auto p-5"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+const NODES = {
+  dgf:    { stage:'sources', title:'DGF · api.minenergia.cl', badge:'MAIN SOURCE', badgeCls:'bg-sky-600 text-white',
+            desc:'U. de Chile Geophysics Dept. (DGF) + MinEnergía "API Energías Renovables" — hourly solar irradiance & wind. Pulled by the poller (Django login, currently pending admin approval).', file:'scripts/dgf_poller.py' },
+  cen:    { stage:'sources', title:'CEN generation feed', badge:'synthetic today', badgeCls:'bg-amber-100 text-amber-800',
+            desc:'Coordinador Eléctrico Nacional generation per plant, hourly — coordinado (programmed) / real (actual) / reducciones (curtailment). Synthetic CSVs in the Volume until a real feed is wired.', file:'lookup CSVs' },
+  owid:   { stage:'sources', title:'Our World in Data', desc:'Country-level renewable statistics (Entity / Year) — hydro, solar, wind, capacity, share of renewables.', file:'lookup CSVs' },
+
+  poller: { stage:'ingest', title:'dgf_poller.py', badge:'hourly Job', badgeCls:'bg-violet-100 text-violet-800',
+            desc:'Drives the portal’s plain Django login (CSRF double-submit, no reCAPTCHA), polls the /api/ endpoints, and lands each response as a timestamped file. Runs as a Databricks Job on an hourly schedule.', file:'scripts/dgf_poller.py' },
+  volume: { stage:'ingest', title:'UC Volume landing', badge:'recommended', badgeCls:'bg-emerald-100 text-emerald-800',
+            desc:'/Volumes/<catalog>/<bronze_schema>/lookup/… — landed JSON/CSV files. Cheap, replayable (easy backfill), and keeps the file_path lineage that silver relies on.', file:'resources/volume.yml' },
+  kafka:  { stage:'ingest', title:'Kafka topic', badge:'OPTIONAL', badgeCls:'bg-amber-500 text-white', optional:true,
+            desc:'A streaming message bus that would sit between the poller and bronze. BYPASSED for the agreed hourly cadence (a broker adds cost + ops with no benefit). Switch it on only for sub-minute / multi-consumer / replay-from-log needs.', file:'dev: localhost:9092 + UI :8080' },
+
+  bronze: { stage:'bronze', title:'BRONZE', desc:'Auto Loader (cloudFiles) ingests the landed files → raw tables + _rescued_data + file_path lineage. (Option B: a Kafka source feeds this directly instead.)', file:'transformations/bronze_*.py' },
+  silver: { stage:'silver', title:'SILVER', desc:'resource → Data Vault hub / link / sat keyed on plant, truncated to hourly. conglomerate → dim_country + fact_energy_consumption/production.', file:'transformations/silver_*.py' },
+  gold:   { stage:'gold', title:'GOLD', desc:'resource → daily / weekly / monthly measures + real-vs-coordinated diff. conglomerate → YoY increase + Chile-vs-LATAM/World comparisons.', file:'transformations/gold_*.py' },
+
+  dash:   { stage:'consume', title:'AI/BI dashboards', desc:'Lakeview — Medallion Health + End-to-End (ingestion → counts by layer → gold metrics → pipeline runs → data-quality).', file:'Lakeview' },
+  sql:    { stage:'consume', title:'SQL editor · notebooks', desc:'Ad-hoc SQL plus the sample_data_queries / pipeline_walkthrough / data_catalog notebooks.', file:'notebooks/' },
+};
+
+const STAGE_META = {
+  sources: { label:'① Sources',     ring:'ring-sky-200',     head:'text-sky-700' },
+  ingest:  { label:'② Ingestion',   ring:'ring-violet-200',  head:'text-violet-700' },
+  bronze:  { label:'③ Bronze',      ring:'ring-amber-200',   head:'text-amber-700' },
+  silver:  { label:'  Silver',      ring:'ring-slate-300',   head:'text-slate-600' },
+  gold:    { label:'  Gold',        ring:'ring-yellow-300',  head:'text-yellow-700' },
+  consume: { label:'④ Consumption', ring:'ring-emerald-200', head:'text-emerald-700' },
+};
+
+function Node({ id, selected, onSelect, mode }) {
+  const n = NODES[id];
+  const isKafka = id === 'kafka';
+  const isVolume = id === 'volume';
+  // dim the path not chosen by the current ingestion mode
+  const dimmed = (isKafka && mode === 'batch') || (isVolume && mode === 'stream');
+  const active = selected === id;
+  const base = "node rounded-xl px-3 py-2 bg-white shadow-sm ring-1 border text-sm";
+  const ring = STAGE_META[n.stage].ring;
+  const sel = active ? "ring-2 ring-offset-1 ring-indigo-400 shadow-md" : ring;
+  const dash = n.optional ? "border-dashed border-amber-400" : "border-slate-200";
+  return (
+    <div onClick={() => onSelect(active ? null : id)}
+         className={`${base} ${sel} ${dash}`}
+         style={{ opacity: dimmed ? 0.4 : 1 }}>
+      <div className="flex items-center gap-2">
+        <span className="font-semibold">{n.title}</span>
+        {n.badge && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${n.badgeCls}`}>{n.badge}</span>}
+      </div>
+      <div className="text-[11px] text-slate-400 mt-0.5">{n.file}</div>
+    </div>
+  );
+}
+
+const Chevron = () => <div className="text-2xl text-slate-300 self-center px-1 select-none">▶</div>;
+const Down    = () => <div className="text-xl text-slate-300 text-center select-none leading-none">▼</div>;
+
+function App() {
+  const [selected, setSelected] = useState('kafka');
+  const [mode, setMode] = useState('batch');
+  const sel = selected ? NODES[selected] : null;
+
+  const col = (ids) => (
+    <div className="flex flex-col gap-2 justify-center min-w-[190px]">
+      {ids.map(id => <Node key={id} id={id} selected={selected} onSelect={setSelected} mode={mode} />)}
+    </div>
+  );
+
+  return (
+    <div>
+      <header className="mb-4">
+        <h1 className="text-xl font-bold text-slate-800">Renewable-Energy PoC — End-to-End Data Workflow</h1>
+        <p className="text-sm text-slate-500">Chilean renewable-energy medallion on Databricks · click any node for details · toggle the ingestion mode to see where Kafka fits.</p>
+      </header>
+
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-xs font-medium text-slate-500">Ingestion mode:</span>
+        <div className="inline-flex rounded-lg bg-slate-100 p-1 text-xs">
+          <button onClick={() => setMode('batch')}
+            className={`px-3 py-1 rounded-md ${mode==='batch'?'bg-white shadow text-emerald-700 font-semibold':'text-slate-500'}`}>
+            Batch · hourly (recommended)
+          </button>
+          <button onClick={() => setMode('stream')}
+            className={`px-3 py-1 rounded-md ${mode==='stream'?'bg-white shadow text-amber-700 font-semibold':'text-slate-500'}`}>
+            Streaming · Kafka
+          </button>
+        </div>
+        <span className="text-xs text-slate-400">
+          {mode==='batch' ? 'Poller lands files in a UC Volume → Auto Loader. No broker.' : 'Poller publishes to Kafka → read natively by bronze. Always-on.'}
+        </span>
+      </div>
+
+      {/* flow */}
+      <div className="flex gap-1 overflow-x-auto pb-3">
+        <Stage stage="sources">{col(['dgf','cen','owid'])}</Stage>
+        <Chevron />
+        <Stage stage="ingest">
+          <div className="flex flex-col gap-2 justify-center min-w-[200px]">
+            <Node id="poller" selected={selected} onSelect={setSelected} mode={mode} />
+            <Down />
+            <Node id="volume" selected={selected} onSelect={setSelected} mode={mode} />
+            <div className="text-center text-[10px] text-slate-400">— or —</div>
+            <Node id="kafka" selected={selected} onSelect={setSelected} mode={mode} />
+          </div>
+        </Stage>
+        <Chevron />
+        <Stage stage="bronze" subStages={['bronze','silver','gold']}>
+          <div className="flex flex-col gap-2 justify-center min-w-[210px]">
+            <Node id="bronze" selected={selected} onSelect={setSelected} mode={mode} />
+            <Down />
+            <Node id="silver" selected={selected} onSelect={setSelected} mode={mode} />
+            <Down />
+            <Node id="gold" selected={selected} onSelect={setSelected} mode={mode} />
+          </div>
+        </Stage>
+        <Chevron />
+        <Stage stage="consume">{col(['dash','sql'])}</Stage>
+      </div>
+
+      {/* detail panel */}
+      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-h-[96px]">
+        {sel ? (
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-slate-800">{sel.title}</h2>
+              {sel.badge && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${sel.badgeCls}`}>{sel.badge}</span>}
+              <code className="ml-auto text-[11px] text-slate-400">{sel.file}</code>
+            </div>
+            <p className="text-sm text-slate-600 mt-1.5">{sel.desc}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">Select a node above to see what it does and which code owns it.</p>
+        )}
+      </div>
+
+      <p className="text-[11px] text-slate-400 mt-3">
+        Bronze → Silver → Gold run as DLT in Databricks. Kafka (amber, dashed) is the optional streaming branch —
+        present as a capability, bypassed in the recommended hourly path. See docs/end-to-end-data-workflow.md.
+      </p>
+    </div>
+  );
+}
+
+function Stage({ stage, children }) {
+  const m = STAGE_META[stage];
+  return (
+    <div className="rounded-2xl bg-white/50 p-3 ring-1 ring-slate-200">
+      <div className={`text-xs font-semibold mb-2 ${m.head}`}>{m.label === '③ Bronze' ? '③ Medallion (DLT)' : m.label}</div>
+      {children}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
