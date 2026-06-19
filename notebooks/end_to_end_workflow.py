@@ -2,20 +2,92 @@
 # MAGIC %md
 # MAGIC # Renewable-Energy PoC — End-to-End Data Workflow
 # MAGIC
-# MAGIC Run the next cell for the **interactive diagram** — click any node for detail, and
-# MAGIC toggle the ingestion mode to see where **Kafka** fits. It is self-contained
-# MAGIC (inline HTML/CSS/JS, **no external libraries**), so it renders even if this
+# MAGIC Run the next cell for the **interactive, data-aware diagram** — it queries the
+# MAGIC sandbox for live table/row counts per layer and the last pipeline run, then
+# MAGIC renders an interactive flow (click nodes, toggle the Kafka path). Self-contained
+# MAGIC inline HTML/CSS/JS — **no external libraries** — so it renders even if this
 # MAGIC workspace blocks CDNs or native Mermaid.
 
 # COMMAND ----------
 
-html = r"""
+import json
+
+# ---------- live stats (best-effort; the diagram still renders if a query fails) ----------
+CAT = "workspace"
+SCHEMAS = {
+    "bronze": {"resource": "dev_fuad_onate_renewable_bronze_energy_chile",
+               "conglomerate": "dev_fuad_onate_conglomerate_bronze_energy_chile"},
+    "silver": {"resource": "dev_fuad_onate_renewable_silver_energy_chile",
+               "conglomerate": "dev_fuad_onate_conglomerate_silver_energy_chile"},
+    "gold":   {"resource": "dev_fuad_onate_renewable_gold_energy_chile",
+               "conglomerate": "dev_fuad_onate_conglomerate_gold_energy"},
+}
+
+def _user_tables(sch):
+    # SHOW TABLES reliably lists DLT streaming tables / materialized views and already
+    # omits the __materialization + event_log system tables (information_schema.tables
+    # intermittently drops the DLT-managed user tables, so it is not trustworthy here).
+    try:
+        rows = spark.sql(f"SHOW TABLES IN {CAT}.{sch}").collect()
+        return [r.tableName for r in rows
+                if not r.tableName.startswith("__") and not r.tableName.startswith("event_log")]
+    except Exception:
+        return []
+
+def _row_total(sch, names):
+    if not names:
+        return 0
+    try:
+        union = " UNION ALL ".join(f"SELECT COUNT(*) c FROM {CAT}.{sch}.`{n}`" for n in names)
+        return int(spark.sql(f"SELECT COALESCE(SUM(c),0) s FROM ({union})").collect()[0].s)
+    except Exception:
+        return 0
+
+layers = {}
+for layer, doms in SCHEMAS.items():
+    by_domain = {}
+    for dom, sch in doms.items():
+        names = _user_tables(sch)
+        by_domain[dom] = {"tables": len(names), "rows": _row_total(sch, names)}
+    layers[layer] = {
+        "tables": sum(d["tables"] for d in by_domain.values()),
+        "rows": sum(d["rows"] for d in by_domain.values()),
+        "byDomain": by_domain,
+    }
+
+def _last_run():
+    try:
+        logs = []
+        for sch in (SCHEMAS["bronze"]["resource"], SCHEMAS["bronze"]["conglomerate"]):
+            for r in spark.sql(f"SELECT table_name FROM {CAT}.information_schema.tables "
+                               f"WHERE table_schema='{sch}' AND startswith(table_name,'event_log')").collect():
+                logs.append(f"{CAT}.{sch}.`{r.table_name}`")
+        if not logs:
+            return None
+        union = " UNION ALL ".join(
+            f"SELECT timestamp ts, details:update_progress.state::string state "
+            f"FROM {t} WHERE event_type='update_progress'" for t in logs)
+        row = spark.sql(
+            "SELECT concat(state,' · ',date_format(from_utc_timestamp(ts,'America/Santiago'),"
+            "'yyyy-MM-dd HH:mm'),' (Santiago)') lr "
+            f"FROM ({union}) WHERE state IN ('COMPLETED','FAILED','CANCELED') ORDER BY ts DESC LIMIT 1").collect()
+        return row[0].lr if row else None
+    except Exception:
+        return None
+
+WF_STATS = {"lastRun": _last_run(), "layers": layers}
+print("live stats:", json.dumps(WF_STATS, indent=1))
+
+# ---------- the diagram (inline, no external deps; live stats injected as JSON) ----------
+template = r"""
 <div id="wf">
 <style>
   #wf{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1e293b;background:#f8fafc;padding:14px;border-radius:12px}
   #wf h1{font-size:18px;margin:0 0 2px}
-  #wf .sub{font-size:12px;color:#64748b;margin-bottom:10px}
-  #wf .banner{background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:11.5px;padding:6px 10px;border-radius:8px;margin-bottom:10px}
+  #wf .sub{font-size:12px;color:#64748b;margin-bottom:8px}
+  #wf .topline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  #wf .banner{background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:11.5px;padding:6px 10px;border-radius:8px}
+  #wf .chip{display:inline-block;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:11px;padding:3px 9px;border-radius:999px}
   #wf .ctrls{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
   #wf .seg{display:inline-flex;background:#e2e8f0;border-radius:9px;padding:3px}
   #wf .seg button{border:0;background:transparent;font-size:12px;padding:5px 11px;border-radius:7px;cursor:pointer;color:#475569}
@@ -25,7 +97,7 @@ html = r"""
   #wf .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:middle}
   #wf .legend i.dash{background:transparent;border:1.5px dashed #f59e0b}
   #wf .flow{display:flex;gap:6px;align-items:stretch;overflow-x:auto;padding-bottom:8px}
-  #wf .stage{background:rgba(255,255,255,.6);border:1px solid #e2e8f0;border-radius:16px;padding:10px;min-width:185px}
+  #wf .stage{background:rgba(255,255,255,.6);border:1px solid #e2e8f0;border-radius:16px;padding:10px;min-width:188px}
   #wf .sh{font-size:11px;font-weight:700;margin-bottom:8px;color:#475569}
   #wf .col{display:flex;flex-direction:column;gap:8px;justify-content:center;height:calc(100% - 22px)}
   #wf .node{background:#fff;border:1px solid #e2e8f0;border-left:4px solid #cbd5e1;border-radius:11px;padding:8px 10px;cursor:pointer;transition:transform .12s,box-shadow .12s,opacity .2s;box-shadow:0 1px 2px rgba(0,0,0,.05)}
@@ -44,19 +116,23 @@ html = r"""
   #wf .sdot{display:inline-block;width:8px;height:8px;border-radius:50%}
   #wf .badge{font-size:9.5px;padding:1px 6px;border-radius:999px}
   #wf .b-main{background:#0284c7;color:#fff}#wf .b-syn{background:#fef3c7;color:#92400e}
-  #wf .b-rec{background:#d1fae5;color:#065f46}#wf .b-job{background:#ede9fe;color:#5b21b6}#wf .b-opt{background:#f59e0b;color:#fff}
+  #wf .b-rec{background:#d1fae5;color:#065f46}#wf .b-job{background:#ede9fe;color:#5b21b6}#wf .b-opt{background:#f59e0b;color:#fff}#wf .b-live{background:#dbeafe;color:#1e40af}
   #wf .chev{align-self:center;color:#cbd5e1;font-size:22px;padding:0 2px}
   #wf .dn{text-align:center;color:#cbd5e1;font-size:15px;line-height:1}
   #wf .orr{text-align:center;font-size:10px;color:#94a3b8}
-  #wf .detail{margin-top:10px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;min-height:74px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  #wf .detail{margin-top:10px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;min-height:78px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
   #wf .dh{display:flex;align-items:center;gap:8px}#wf .dh b{font-size:14px}
   #wf .dh code{margin-left:auto;font-size:11px;color:#94a3b8}
   #wf .dst{font-size:11px;margin-top:4px}
   #wf .dd{font-size:13px;color:#475569;margin-top:6px}
+  #wf .dmetrics{font-size:11.5px;color:#1e40af;margin-top:6px}
 </style>
 <h1>End-to-End Data Workflow</h1>
 <div class="sub">Chilean renewable-energy medallion on Databricks · click any node · toggle ingestion mode to see Kafka's role.</div>
-<div class="banner">&#9888; Running on <b>synthetic sample data</b> — the real DGF feed is pending approval (card&nbsp;#56). Treat magnitudes as placeholders.</div>
+<div class="topline">
+  <span class="banner">&#9888; <b>Synthetic sample data</b> — real DGF feed pending approval (card&nbsp;#56); magnitudes are placeholders.</span>
+  <span class="chip" id="lastrun">last run: —</span>
+</div>
 <div class="ctrls">
   <span class="note" style="font-weight:600;color:#64748b">Ingestion mode:</span>
   <div class="seg"><button id="mb" class="active" onclick="wfMode('batch')">Batch · hourly</button><button id="ms" onclick="wfMode('stream')">Streaming · Kafka</button></div>
@@ -76,6 +152,7 @@ html = r"""
 <div class="detail" id="detail"></div>
 </div>
 <script>
+var WF_STATS = __STATS__;
 var NODES={
  dgf:{stage:'sources',title:'DGF · api.minenergia.cl',badge:'MAIN',bc:'b-main',st:'pending approval',sc:'#f59e0b',file:'scripts/dgf_poller.py',desc:'U. de Chile Geophysics (DGF) + MinEnergía API — hourly solar/wind. Pulled by the poller. Login works but the account is pending admin approval, so no real data flows yet.'},
  cen:{stage:'sources',title:'CEN generation feed',badge:'synthetic',bc:'b-syn',st:'synthetic',sc:'#94a3b8',file:'lookup CSVs',desc:'Coordinador generation per plant, hourly — coordinado / real / reducciones. Synthetic CSV today; a real source is out of card #56 scope.'},
@@ -83,12 +160,17 @@ var NODES={
  poller:{stage:'ingest',title:'dgf_poller.py',badge:'hourly Job',bc:'b-job',file:'scripts/dgf_poller.py',desc:'Django login (CSRF double-submit, no reCAPTCHA), polls /api/, lands files. Runs as a Databricks Job hourly. --self-test passes against the live site today.'},
  volume:{stage:'ingest',title:'UC Volume landing',badge:'recommended',bc:'b-rec',file:'resources/volume.yml',desc:'/Volumes/<catalog>/<bronze_schema>/lookup/… landed JSON/CSV. Cheap, replayable, keeps the file_path lineage that silver relies on.'},
  kafka:{stage:'ingest',title:'Kafka topic',badge:'OPTIONAL',bc:'b-opt',opt:true,file:'dev: localhost:9092',desc:'Streaming message bus between poller and bronze. BYPASSED for hourly cadence (a broker = cost + ops). Switch on only for sub-minute / multi-consumer / replay-from-log.'},
- bronze:{stage:'bronze',title:'BRONZE',badge:'11 tables',bc:'b-syn',file:'transformations/bronze_*.py',desc:'Auto Loader (cloudFiles) ingests landed files → raw + _rescued_data + file_path lineage. 100% of columns documented via in-code schema COMMENTs.'},
+ bronze:{stage:'bronze',title:'BRONZE',file:'transformations/bronze_*.py',desc:'Auto Loader (cloudFiles) ingests landed files → raw + _rescued_data + file_path lineage. 100% of columns documented via in-code schema COMMENTs.'},
  silver:{stage:'silver',title:'SILVER',file:'transformations/silver_*.py',desc:'resource → Data Vault hub / link / sat keyed on plant, truncated to hourly. conglomerate → dim_country + fact_*. ⚠ known PR #21 bug: coordinated SCD key collapses the coordinated series.'},
  gold:{stage:'gold',title:'GOLD',file:'transformations/gold_*.py',desc:'resource → daily / weekly / monthly measures + real-vs-coordinated diff. conglomerate → YoY increase + Chile-vs-LATAM/World comparisons.'},
  dash:{stage:'consume',title:'AI/BI dashboards',file:'Lakeview',desc:'Lakeview — Medallion Health + End-to-End (ingestion → counts → gold metrics → pipeline runs → data quality, all Santiago-time).'},
  sql:{stage:'consume',title:'SQL editor · notebooks',file:'notebooks/',desc:'Ad-hoc SQL + the sample_data_queries / pipeline_walkthrough / data_catalog notebooks.'}
 };
+// fold live stats into the medallion nodes
+(function(){var S=WF_STATS||{};var L=(S.layers)||{};['bronze','silver','gold'].forEach(function(k){var d=L[k];if(!d)return;
+ NODES[k].badge=d.tables+' tbl · '+Number(d.rows).toLocaleString()+' rows';NODES[k].bc='b-live';
+ var bd=d.byDomain||{};NODES[k]._live='Live: resource '+((bd.resource||{}).tables||0)+' tbl / '+Number((bd.resource||{}).rows||0).toLocaleString()+' rows · conglomerate '+((bd.conglomerate||{}).tables||0)+' tbl / '+Number((bd.conglomerate||{}).rows||0).toLocaleString()+' rows.';});
+ var lr=document.getElementById('lastrun');if(lr)lr.textContent='last run: '+(S.lastRun||'—');})();
 var mode='batch';
 function nodeHTML(id){var n=NODES[id];return '<div class="node '+n.stage+(n.opt?' opt':'')+'" data-id="'+id+'" onclick="wfSel(\''+id+'\')">'+
  '<div class="nt">'+(n.st?'<span class="sdot" title="'+n.st+'" style="background:'+n.sc+'"></span>':'')+n.title+(n.badge?' <span class="badge '+n.bc+'">'+n.badge+'</span>':'')+'</div><div class="nf">'+(n.file||'')+'</div></div>';}
@@ -103,15 +185,16 @@ var flow=
 document.getElementById('flow').innerHTML=flow;
 function wfSel(id){var n=NODES[id];var ns=document.querySelectorAll('#wf .node');for(var i=0;i<ns.length;i++){ns[i].classList.toggle('sel',ns[i].getAttribute('data-id')===id);}
  var st=n.st?'<div class="dst" style="color:'+n.sc+'">&#9679; status: '+n.st+'</div>':'';
- document.getElementById('detail').innerHTML='<div class="dh"><b>'+n.title+'</b>'+(n.badge?' <span class="badge '+n.bc+'">'+n.badge+'</span>':'')+' <code>'+(n.file||'')+'</code></div>'+st+'<div class="dd">'+n.desc+'</div>';}
+ var lv=n._live?'<div class="dmetrics">&#9679; '+n._live+'</div>':'';
+ document.getElementById('detail').innerHTML='<div class="dh"><b>'+n.title+'</b>'+(n.badge?' <span class="badge '+n.bc+'">'+n.badge+'</span>':'')+' <code>'+(n.file||'')+'</code></div>'+st+lv+'<div class="dd">'+n.desc+'</div>';}
 function wfMode(m){mode=m;document.getElementById('mb').classList.toggle('active',m==='batch');document.getElementById('ms').classList.toggle('active',m==='stream');
  document.querySelector('#wf .node[data-id=kafka]').classList.toggle('dim',m==='batch');
  document.querySelector('#wf .node[data-id=volume]').classList.toggle('dim',m==='stream');
  document.getElementById('mnote').textContent=(m==='batch')?'Poller → UC Volume → Auto Loader. No broker, replayable, cheapest.':'Poller → Kafka topic → read natively by bronze. Lowest latency, always-on.';}
-wfMode('batch');wfSel('kafka');
+wfMode('batch');wfSel('bronze');
 </script>
 """
-displayHTML(html)
+displayHTML(template.replace("__STATS__", json.dumps(WF_STATS)))
 
 # COMMAND ----------
 
