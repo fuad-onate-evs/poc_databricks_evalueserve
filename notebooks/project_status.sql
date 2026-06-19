@@ -59,6 +59,20 @@
 -- COMMAND ----------
 
 -- MAGIC %md
+-- MAGIC ### 2.1 · Ingestion code — ready to activate
+-- MAGIC The DGF feed has two landing options written in code (`src/renewable_energy_chile/streaming/`):
+-- MAGIC - **Option A — recommended (hourly):** `bronze_dgf_autoloader.py` → poller lands JSON in a
+-- MAGIC   UC Volume → Auto Loader DLT bronze (`bronze_dgf_met`). No broker.
+-- MAGIC - **Option B — streaming (Kafka):** `bronze_dgf_kafka.py` + `scripts/dgf_kafka_producer.py`
+-- MAGIC   → producer publishes to a topic → native `readStream.format("kafka")` bronze. Try it now
+-- MAGIC   against the local broker: `python scripts/dgf_kafka_producer.py --demo 48`.
+-- MAGIC
+-- MAGIC Both are **inert until activated** (the pipeline glob only includes `transformations/**`);
+-- MAGIC activation steps in `src/renewable_energy_chile/streaming/README.md`.
+
+-- COMMAND ----------
+
+-- MAGIC %md
 -- MAGIC ## 3 · The data — medallion at a glance
 -- MAGIC Row counts of a representative table per layer × domain (live):
 
