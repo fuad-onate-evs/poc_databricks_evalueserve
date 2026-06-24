@@ -41,6 +41,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 try:  # optional: load DGF_* from a local .env
     from dotenv import load_dotenv
@@ -60,6 +62,12 @@ _REDIRECTS = (301, 302, 303, 307, 308)
 def make_session() -> requests.Session:
     s = requests.Session()
     s.headers.update({"User-Agent": USER_AGENT})
+    # Retry transient errors so an hourly run survives a blip instead of aborting.
+    retry = Retry(total=3, backoff_factor=0.5, status_forcelist=(429, 502, 503, 504),
+                  allowed_methods=frozenset(["GET", "POST"]))
+    adapter = HTTPAdapter(max_retries=retry)
+    s.mount("https://", adapter)
+    s.mount("http://", adapter)
     return s
 
 
@@ -74,23 +82,30 @@ def get_csrf(session: requests.Session) -> str:
 
 
 def is_authenticated(session: requests.Session) -> bool:
-    """Authenticated iff ``/api/`` does not bounce us to ``/login``."""
+    """Authenticated iff ``/api/`` returns data rather than the login wall."""
     r = session.get(API_ROOT, timeout=20, allow_redirects=False)
     if r.status_code in _REDIRECTS:
         return "/login" not in r.headers.get("Location", "")
-    return r.status_code == 200
+    if r.status_code == 200:
+        # A 200 can still be the re-rendered login form — that is NOT authenticated.
+        return "csrfmiddlewaretoken" not in r.text and 'name="password"' not in r.text
+    return False
 
 
 def login(session: requests.Session, username: str, password: str) -> bool:
     """Django double-submit CSRF login. Returns True if the session is authenticated."""
     token = get_csrf(session)
-    session.post(
+    r = session.post(
         LOGIN_URL,
         data={"csrfmiddlewaretoken": token, "username": username, "password": password},
         headers={"Referer": LOGIN_URL},  # Django requires a same-origin Referer for HTTPS POST
         timeout=20,
         allow_redirects=True,
     )
+    # A 5xx is a server/transport problem — surface it instead of mislabeling it as
+    # "wrong credentials / pending approval" (Django returns 200 on a rejected password).
+    if r.status_code >= 500:
+        raise RuntimeError(f"login POST failed with server error {r.status_code}")
     return is_authenticated(session)
 
 
@@ -107,7 +122,7 @@ def poll_endpoint(session: requests.Session, path: str) -> tuple[str, requests.R
 
 def land(resp: requests.Response, landing: Path, slug: str) -> Path:
     """Write the response to ``landing`` with a UTC-stamped, type-aware filename."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")  # sub-second → no overwrite
     ctype = resp.headers.get("Content-Type", "")
     ext = "json" if "json" in ctype else "csv" if "csv" in ctype else "txt"
     landing.mkdir(parents=True, exist_ok=True)

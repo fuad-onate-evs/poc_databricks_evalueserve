@@ -38,6 +38,8 @@ def _producer():
         sys.exit("kafka-python not installed — run: pip install kafka-python")
     return KafkaProducer(
         bootstrap_servers=BOOTSTRAP,
+        acks="all",   # wait for broker acknowledgement so "delivered N" is truthful
+        retries=3,
         key_serializer=lambda k: (k or "").encode(),
         value_serializer=lambda v: json.dumps(v).encode(),
     )
@@ -66,7 +68,8 @@ def demo_records(n: int):
 def dir_records(directory: str):
     for path in sorted(glob.glob(os.path.join(directory, "**", "*.json"), recursive=True)):
         try:
-            data = json.load(open(path, encoding="utf-8"))
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
         except Exception as exc:
             print(f"skip {path}: {exc}", file=sys.stderr)
             continue
@@ -79,18 +82,25 @@ def main() -> int:
     ap.add_argument("--demo", type=int, metavar="N", help="publish N synthetic records")
     ap.add_argument("--from-dir", metavar="DIR", help="publish JSON records found under DIR")
     args = ap.parse_args()
-    if bool(args.demo) == bool(args.from_dir):
+    if (args.demo is None) == (args.from_dir is None):  # XOR — also handles --demo 0
         ap.error("choose exactly one of --demo N or --from-dir DIR")
 
-    records = demo_records(args.demo) if args.demo else dir_records(args.from_dir)
+    records = demo_records(args.demo) if args.demo is not None else dir_records(args.from_dir)
     producer = _producer()
-    n = 0
+    futures, n = [], 0
     for key, value in records:
-        producer.send(TOPIC, key=key, value=value)
+        futures.append(producer.send(TOPIC, key=key, value=value))
         n += 1
     producer.flush()
-    print(f"published {n} records to topic '{TOPIC}' at {BOOTSTRAP}")
-    return 0
+    delivered = 0
+    for f in futures:
+        try:
+            f.get(timeout=10)
+            delivered += 1
+        except Exception as exc:
+            print(f"delivery failed: {exc}", file=sys.stderr)
+    print(f"delivered {delivered}/{n} records to topic '{TOPIC}' at {BOOTSTRAP}")
+    return 0 if delivered == n else 1
 
 
 if __name__ == "__main__":

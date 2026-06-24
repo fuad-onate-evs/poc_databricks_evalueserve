@@ -40,6 +40,8 @@ def bronze_dgf_met_kafka():
         .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP)
         .option("subscribe", KAFKA_TOPIC)
         .option("startingOffsets", "earliest")
+        # Cap how much each trigger pulls so a large backlog doesn't land in one batch:
+        # .option("maxOffsetsPerTrigger", "10000")
         # For a secured broker, read credentials from a Databricks secret scope, e.g.:
         #   .option("kafka.security.protocol", "SASL_SSL")
         #   .option("kafka.sasl.mechanism", "PLAIN")
