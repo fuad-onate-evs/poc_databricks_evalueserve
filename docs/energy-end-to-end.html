@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Energía renovable — End-to-End (proyecto como backend)</title>
+<style>
+  :root{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{margin:0;background:linear-gradient(180deg,#f8fafc,#eef2f7);color:#1e293b}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{font-size:12.5px;color:#64748b;margin-bottom:12px}
+  .ctrls{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .seg{display:inline-flex;background:#e2e8f0;border-radius:9px;padding:3px}
+  .seg button{border:0;background:transparent;font-size:12.5px;padding:6px 13px;border-radius:7px;cursor:pointer;color:#475569}
+  .seg button.active{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+  .seg button.e.active{color:#b45309}.seg button.b.active{color:#0f766e}
+  .note{font-size:12px;color:#94a3b8}
+  .chain{display:flex;gap:4px;align-items:stretch;flex-wrap:wrap}
+  .stage{flex:1 1 150px;min-width:148px;background:#fff;border:1px solid #e2e8f0;border-top:4px solid #f59e0b;border-radius:12px;padding:11px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .stage:hover{transform:translateY(-2px);box-shadow:0 5px 13px rgba(0,0,0,.1)}
+  .stage.sel{outline:2px solid #6366f1;outline-offset:1px}
+  .stage .ic{font-size:20px}
+  .stage .nm{font-weight:600;font-size:13px;margin-top:4px}
+  .stage .sb{font-size:10.5px;color:#94a3b8;margin-top:2px}
+  .arrow{align-self:center;color:#cbd5e1;font-size:18px;padding:0 1px}
+  .backend{background:#fff;border:1px dashed #99f6e4;border-radius:12px;padding:10px 12px;margin-top:14px}
+  .backend .bt{font-size:11px;font-weight:700;color:#0f766e;margin-bottom:7px;letter-spacing:.3px}
+  .layers{display:flex;gap:6px;flex-wrap:wrap}
+  .lyr{background:#f0fdfa;border:1px solid #99f6e4;color:#115e59;font-size:11px;padding:5px 10px;border-radius:8px}
+  .detail{margin-top:14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;min-height:104px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .detail .dh{display:flex;align-items:center;gap:9px}.detail .dh b{font-size:15px}
+  .row{display:flex;gap:8px;margin-top:9px;font-size:13px}
+  .row .k{flex:0 0 96px;font-weight:600;font-size:11.5px;color:#64748b;text-transform:uppercase;letter-spacing:.3px;padding-top:1px}
+  .row.energy .v{color:#7c2d12}.row.backend .v{color:#115e59}.row.metric .v{color:#1e40af}
+  code{font-size:11px;background:#f1f5f9;padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ Energía renovable — End-to-End</h1>
+  <div class="sub">El viaje de la energía: recurso → generación → sistema → medición → análisis → decisión. El <b>proyecto de datos es el backend</b> que observa y mide cada etapa. Haz clic en una etapa.</div>
+  <div class="ctrls">
+    <span class="note" style="font-weight:600;color:#64748b">Vista:</span>
+    <div class="seg">
+      <button id="mE" class="e active" onclick="setView('energy')">⚡ Energía</button>
+      <button id="mB" class="b" onclick="setView('backend')">🛠 Backend (el proyecto)</button>
+    </div>
+    <span class="note" id="vnote"></span>
+  </div>
+  <div class="chain" id="chain"></div>
+  <div class="backend">
+    <div class="bt">EL PROYECTO COMO BACKEND — plataforma de datos que sostiene el flujo</div>
+    <div class="layers" id="backendLayers"></div>
+  </div>
+  <div class="detail" id="detail"></div>
+</div>
+<script>
+var STAGES=[
+ {id:"recurso",ic:"☀️💨",e:"Recurso natural",eSub:"irradiancia + viento",
+  b:"DGF Explorador → fetcher",bSub:"data real, sin login",
+  energy:"El sol y el viento: el recurso renovable bruto. Irradiancia solar (GHI/DNI, kWh/m²/día) y velocidad de viento (m/s) en la ubicación de cada planta.",
+  backend:"DGF Explorador (solar/eolico.minenergia.cl) → scripts/dgf_explorador_fetcher.py → bronze. Datos reales, sin autenticación.",
+  metric:"GHI/DNI, viento m/s por planta (p.ej. Cerro Dominador GHI 7.28; Negrete Cuel 7.85 m/s)."},
+ {id:"generacion",ic:"⚙️",e:"Generación",eSub:"plantas solar + eólicas",
+  b:"Maestro de plantas → bronze",bSub:"MWh por planta",
+  energy:"Paneles fotovoltaicos y turbinas convierten el recurso en electricidad (MWh). Cada planta tiene una ubicación, tecnología y capacidad.",
+  backend:"data/renewable_plants.csv (10 plantas reales de Chile) define las coordenadas; la generación llega a bronze.",
+  metric:"MWh generados por planta/hora."},
+ {id:"sistema",ic:"🔌",e:"Operación del sistema (CEN)",eSub:"coordinado · real · reducciones",
+  b:"3 streams → silver hubs",bSub:"Data Vault por planta·hora",
+  energy:"El Coordinador Eléctrico despacha las plantas: COORDINADO = lo programado, REAL = lo efectivamente generado, REDUCCIONES = recorte (curtailment) ordenado a la planta.",
+  backend:"3 fuentes bronze (coordinado/real/reducciones) → silver: hubs Data Vault (hub_plant / hub_coordinated / hub_reductions) keyed por planta·hora.",
+  metric:"programado vs real vs recortado."},
+ {id:"medicion",ic:"📟",e:"Medición",eSub:"por planta · horario",
+  b:"silver_sat_measure",bSub:"consolidado por planta·hora",
+  energy:"Cada planta se mide por hora — la verdad de terreno de lo producido, recortado y programado.",
+  backend:"silver_sat_measure une las 3 fuentes por planta·timestamp (plant_value / coordinated_value / reduction_value).",
+  metric:"valores real / coordinado / reducción por hora."},
+ {id:"analisis",ic:"📈",e:"Análisis",eSub:"métricas · KPIs",
+  b:"GOLD: measures + diff",bSub:"daily/weekly/monthly + comparaciones",
+  energy:"Convertir mediciones en insight: desviación real-vs-programado, curtailment, tendencias diarias/semanales/mensuales y comparación país.",
+  backend:"gold: gold_daily/weekly/monthly_measure + diff_real_coordinated; conglomerado: increase + Chile-vs-LATAM/Mundo.",
+  metric:"diff real−coordinado, % curtailment, aumento interanual."},
+ {id:"decision",ic:"🎯",e:"Decisión",eSub:"operación + negocio",
+  b:"Dashboards + SQL",bSub:"Lakeview / notebooks",
+  energy:"Operadores y analistas actúan: precisión del pronóstico, reducir curtailment, inversión, reportería regulatoria.",
+  backend:"AI/BI dashboards (Medallion Health, End-to-End) + SQL editor + notebooks (project_status).",
+  metric:"dashboards y reportes accionables."}
+];
+var BACKEND_LAYERS=["Trello — planificación","Volume + Auto Loader — ingesta","Kafka — streaming (opcional)","Bronze — crudo + linaje","Silver — Data Vault / dim·fact","Gold — métricas","Unity Catalog — gobernanza","Lakeview — dashboards"];
+
+var view="energy";
+document.getElementById("backendLayers").innerHTML=BACKEND_LAYERS.map(function(x){return '<span class="lyr">'+x+'</span>';}).join("");
+
+function render(){
+  var html="";
+  STAGES.forEach(function(s,i){
+    var top = view==="energy" ? "#f59e0b" : "#14b8a6";
+    var name = view==="energy" ? s.e : s.b;
+    var sub  = view==="energy" ? s.eSub : s.bSub;
+    var ic   = view==="energy" ? s.ic : "🛠";
+    html+='<div class="stage" data-id="'+s.id+'" style="border-top-color:'+top+'" onclick="pick(\''+s.id+'\')">'+
+      '<div class="ic">'+ic+'</div><div class="nm">'+name+'</div><div class="sb">'+sub+'</div></div>';
+    if(i<STAGES.length-1) html+='<div class="arrow">&#9654;</div>';
+  });
+  document.getElementById("chain").innerHTML=html;
+  document.getElementById("mE").classList.toggle("active",view==="energy");
+  document.getElementById("mB").classList.toggle("active",view==="backend");
+  document.getElementById("vnote").textContent = view==="energy"
+    ? "El flujo físico/comercial de la energía." : "Cómo el proyecto de datos sostiene cada etapa.";
+}
+function setView(v){view=v;render();if(window._sel)pick(window._sel);}
+var BYID={};STAGES.forEach(function(s){BYID[s.id]=s;});
+function pick(id){
+  window._sel=id;var s=BYID[id];
+  var st=document.querySelectorAll(".stage");
+  for(var i=0;i<st.length;i++) st[i].classList.toggle("sel",st[i].getAttribute("data-id")===id);
+  document.getElementById("detail").innerHTML=
+    '<div class="dh"><span style="font-size:20px">'+s.ic+'</span><b>'+s.e+'</b><span class="note">— '+s.b+'</span></div>'+
+    '<div class="row energy"><div class="k">⚡ Energía</div><div class="v">'+s.energy+'</div></div>'+
+    '<div class="row backend"><div class="k">🛠 Backend</div><div class="v">'+s.backend+'</div></div>'+
+    '<div class="row metric"><div class="k">📊 Métrica</div><div class="v">'+s.metric+'</div></div>';
+}
+render();pick("recurso");
+</script>
+</body>
+</html>
