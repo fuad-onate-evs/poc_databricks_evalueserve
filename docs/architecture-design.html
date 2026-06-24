@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Renewable-Energy PoC — Proposed Architecture</title>
+<style>
+  :root{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{margin:0;background:linear-gradient(180deg,#f8fafc,#eef2f7);color:#1e293b}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{font-size:12.5px;color:#64748b;margin-bottom:10px}
+  .banner{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:12px;padding:7px 11px;border-radius:9px;margin-bottom:12px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#64748b;margin-bottom:12px;align-items:center}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .layer{display:flex;gap:10px;align-items:stretch;margin-bottom:8px}
+  .lh{flex:0 0 150px;display:flex;align-items:center;font-size:12px;font-weight:700;color:#fff;border-radius:11px;padding:8px 10px}
+  .comps{flex:1;display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+  .card{flex:1 1 180px;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:9px 11px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 1px 2px rgba(0,0,0,.05);position:relative}
+  .card:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.09)}
+  .card.sel{outline:2px solid #6366f1;outline-offset:1px}
+  .card .nm{font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
+  .card .sb{font-size:10.5px;color:#94a3b8;margin-top:2px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .arrow{text-align:center;color:#cbd5e1;font-size:16px;line-height:.6;margin:1px 0}
+  .cross{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .pill{background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;font-size:11px;padding:4px 10px;border-radius:999px}
+  .detail{margin-top:12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:13px;min-height:84px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .detail .dh{display:flex;align-items:center;gap:8px}.detail .dh b{font-size:15px}
+  .detail .st{font-size:11px;padding:2px 8px;border-radius:999px;color:#fff}
+  .detail .dd{font-size:13px;color:#475569;margin-top:7px}
+  .detail code{font-size:11px;color:#7c3aed;background:#f5f3ff;padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Renewable-Energy PoC — Proposed Architecture</h1>
+  <div class="sub">Chilean renewable-energy data-engineering platform · Trello + Databricks + Kafka · click any component for detail.</div>
+  <div class="banner">✅ <b>Real DGF data is unblocked</b> — the open Explorador endpoint (no login) feeds real solar/wind for 10 plants, verified end-to-end into bronze. The gated <code>api.minenergia.cl</code> account is now a parallel track, not a blocker.</div>
+  <div class="legend" id="legend"></div>
+  <div id="diagram"></div>
+  <div class="cross" id="cross"></div>
+  <div class="detail" id="detail"></div>
+  <div class="sub" style="margin-top:10px">Cadence: <b>hourly</b> → file-landing + Auto Loader is the chosen path (no broker); Kafka stays optional for true streaming. Source of truth: <code>docs/end-to-end-data-workflow.md</code>.</div>
+</div>
+<script>
+var STATUS={
+  live:{l:"live / verified",c:"#16a34a"},
+  ready:{l:"ready to activate",c:"#2563eb"},
+  pending:{l:"pending approval",c:"#f59e0b"},
+  synthetic:{l:"synthetic today",c:"#94a3b8"},
+  optional:{l:"optional",c:"#a16207"}
+};
+var LAYERS=[
+ {title:"① Sources",color:"#0284c7",comps:[
+   {id:"explorador",nm:"DGF Explorador",sb:"solar/eolico.minenergia.cl",st:"live",d:"U. de Chile Geophysics solar & wind resource via the open python-router backend (NO login, no token). Real data verified for 10 Chilean plants. Climatological typical-year (model ~2004-2016), not live real-time."},
+   {id:"dgfapi",nm:"DGF API (gated)",sb:"api.minenergia.cl /api/",st:"pending",d:"The login-gated REST API. Needs email confirmation + admin approval. Kept as a parallel track; the Explorador already covers real data."},
+   {id:"cen",nm:"CEN generation",sb:"coordinado / real / reducciones",st:"synthetic",d:"Coordinador Eléctrico Nacional generation per plant/hour. Synthetic CSV today."},
+   {id:"owid",nm:"Our World in Data",sb:"country renewable stats",st:"synthetic",d:"Country-level (Entity/Year) renewable statistics from sample CSVs."}
+ ]},
+ {title:"② Acquisition",color:"#7c3aed",comps:[
+   {id:"fetcher",nm:"dgf_explorador_fetcher.py",sb:"no-auth · real plants",st:"live",d:"Pulls Explorador solar/wind for plant coordinates (data/renewable_plants.csv) and lands JSONL. Verified end-to-end into bronze."},
+   {id:"poller",nm:"dgf_poller.py",sb:"gated /api/ when approved",st:"ready",d:"Django-login poller for the gated API (CSRF, retries, robust). Activates the moment the account is approved."},
+   {id:"producer",nm:"dgf_kafka_producer.py",sb:"→ Kafka",st:"ready",d:"Publishes DGF records to a Kafka topic for the streaming ingestion path."}
+ ]},
+ {title:"③ Ingestion",color:"#b45309",comps:[
+   {id:"volume",nm:"UC Volume → Auto Loader",sb:"Option A · recommended",st:"live",d:"Files land in a Unity Catalog Volume; Auto Loader (cloudFiles) incrementally ingests to bronze. Hourly, cheap, replayable, keeps file lineage."},
+   {id:"kafka",nm:"Kafka topic",sb:"Option B · optional",st:"optional",d:"Native readStream.format('kafka') bronze for sub-minute / multi-consumer / replay. Bypassed at the agreed hourly cadence."}
+ ]},
+ {title:"④ Lakehouse · Databricks (Unity Catalog + DLT)",color:"#16a34a",comps:[
+   {id:"bronze",nm:"BRONZE",sb:"raw + lineage",st:"live",d:"Auto Loader raw tables + _rescued_data + file_path. 100% of columns documented in Catalog Explorer."},
+   {id:"silver",nm:"SILVER",sb:"Data Vault · dim/fact",st:"live",d:"resource → hub/link/sat keyed on plant (hourly); conglomerate → dim_country + fact_*. (PR #21 fixes the coordinated SCD key.)"},
+   {id:"gold",nm:"GOLD",sb:"measures · metrics",st:"live",d:"resource → daily/weekly/monthly measures + real-vs-coordinated diff; conglomerate → YoY increase + Chile-vs-LATAM/World."}
+ ]},
+ {title:"⑤ Consumption",color:"#059669",comps:[
+   {id:"dash",nm:"AI/BI dashboards",sb:"Lakeview",st:"live",d:"Medallion Health + End-to-End (counts, gold metrics, pipeline runs, data quality)."},
+   {id:"sql",nm:"SQL · notebooks",sb:"editor + notebooks",st:"live",d:"Ad-hoc SQL + project_status / pipeline_walkthrough / data_catalog notebooks."}
+ ]}
+];
+var CROSS=["Trello — planning / tickets","Unity Catalog — governance + lineage","Databricks Asset Bundle — CI/CD","Jobs — hourly orchestration","Asset gitignored .env — secrets"];
+
+// legend
+document.getElementById("legend").innerHTML=Object.keys(STATUS).map(function(k){
+  return '<span><i style="background:'+STATUS[k].c+'"></i>'+STATUS[k].l+'</span>';}).join("");
+// cross-cutting
+document.getElementById("cross").innerHTML='<span class="sub" style="align-self:center">Cross-cutting:</span>'+
+  CROSS.map(function(c){return '<span class="pill">'+c+'</span>';}).join("");
+
+// diagram
+var html="";
+LAYERS.forEach(function(L,i){
+  var cards=L.comps.map(function(c){
+    return '<div class="card" data-id="'+c.id+'" onclick="pick(\''+c.id+'\')">'+
+      '<div class="nm"><span class="dot" style="background:'+STATUS[c.st].c+'"></span>'+c.nm+'</div>'+
+      '<div class="sb">'+c.sb+'</div></div>';
+  }).join("");
+  html+='<div class="layer"><div class="lh" style="background:'+L.color+'">'+L.title+'</div><div class="comps">'+cards+'</div></div>';
+  if(i<LAYERS.length-1) html+='<div class="arrow">&#9660;</div>';
+});
+document.getElementById("diagram").innerHTML=html;
+
+var BYID={};LAYERS.forEach(function(L){L.comps.forEach(function(c){BYID[c.id]=c;});});
+function pick(id){
+  var c=BYID[id];
+  var cards=document.querySelectorAll(".card");
+  for(var i=0;i<cards.length;i++) cards[i].classList.toggle("sel",cards[i].getAttribute("data-id")===id);
+  document.getElementById("detail").innerHTML=
+    '<div class="dh"><b>'+c.nm+'</b> <span class="st" style="background:'+STATUS[c.st].c+'">'+STATUS[c.st].l+'</span> <span class="sb">'+c.sb+'</span></div>'+
+    '<div class="dd">'+c.d+'</div>';
+}
+pick("explorador");
+</script>
+</body>
+</html>

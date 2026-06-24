@@ -109,17 +109,20 @@ def land(records, landing: Path, resource: str, op: str) -> Path:
 
 
 def read_points(path: str):
-    """Read points from CSV (name,lat,lon header) or a JSON list of [name,lat,lon]/objects."""
+    """Read points from CSV (name,lat,lon[,resource]) or a JSON list of objects/rows.
+
+    Yields (name, lat, lon, resource); resource is None when the row doesn't set it.
+    """
     if path.endswith(".json"):
         for row in json.load(open(path, encoding="utf-8")):
             if isinstance(row, dict):
-                yield row.get("name", ""), float(row["lat"]), float(row["lon"])
+                yield row.get("name", ""), float(row["lat"]), float(row["lon"]), row.get("resource")
             else:
-                yield row[0], float(row[1]), float(row[2])
+                yield row[0], float(row[1]), float(row[2]), (row[3] if len(row) > 3 else None)
         return
     with open(path, encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
-            yield row.get("name", ""), float(row["lat"]), float(row["lon"])
+            yield row.get("name", ""), float(row["lat"]), float(row["lon"]), row.get("resource")
 
 
 def main() -> int:
@@ -137,26 +140,28 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.demo:
-        points = DEMO_POINTS
+        points = [(n, la, lo, None) for n, la, lo in DEMO_POINTS]
     elif args.points_file:
         points = list(read_points(args.points_file))
     elif args.lat is not None and args.lon is not None:
-        points = [(args.name, args.lat, args.lon)]
+        points = [(args.name, args.lat, args.lon, None)]
     else:
         ap.error("provide --lat/--lon, --points-file, or --demo")
 
-    if args.resource == "eolic" and not args.modelo:
-        ap.error("eolic needs --modelo (or DGF_EOLIC_MODELO); read it from the Explorador app")
-
     session = make_session()
     records, failures = [], 0
-    for name, lat, lon in points:
+    for name, lat, lon, row_res in points:
+        resource = (row_res or args.resource).strip().lower()  # per-row resource wins
+        if resource == "eolic" and not args.modelo:
+            print(f"  SKIP {name}: eolic needs --modelo (or DGF_EOLIC_MODELO)", file=sys.stderr)
+            failures += 1
+            continue
         try:
-            rec = fetch_point(session, args.resource, args.op, lat, lon, name, args.modelo)
+            rec = fetch_point(session, resource, args.op, lat, lon, name, args.modelo)
             ok = rec["server_status"] == "ok"
             failures += 0 if ok else 1
             keys = list((rec["data"] or {}).keys())[:6] if ok else rec["data"]
-            print(f"  {args.resource}/{args.op} {name or ''} ({lat},{lon}) -> {rec['server_status']} {keys}")
+            print(f"  {resource}/{args.op} {name or ''} ({lat},{lon}) -> {rec['server_status']} {keys}")
             records.append(rec)
         except Exception as exc:
             failures += 1
@@ -164,7 +169,8 @@ def main() -> int:
 
     if not args.dry_run and records:
         landing = Path(os.environ.get("DGF_LANDING", "./_dgf_landing"))
-        print(f"landed {len(records)} record(s) -> {land(records, landing, args.resource, args.op)}")
+        label = "plants" if args.points_file else args.resource
+        print(f"landed {len(records)} record(s) -> {land(records, landing, label, args.op)}")
     return 1 if failures else 0
 
 
