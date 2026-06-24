@@ -5,6 +5,14 @@ matching `docs/card-56-bronze-landing-design.md`. Neither is wired into the runn
 pipeline yet — the pipeline glob only includes `transformations/**`, so these files in
 `streaming/` are inert until you activate them.
 
+> **Real DGF data NOW — no account needed.** `scripts/dgf_explorador_fetcher.py` pulls
+> genuine DGF **Explorador Solar/Eólico** series from the open `python-router` backend
+> (no login) and lands them as JSONL into the bronze landing zone, feeding the same Auto
+> Loader bronze below — so we get real data **without** waiting for the gated
+> `api.minenergia.cl` account. (Explorador data is climatological typical-year, not live
+> real-time.) Try it: `python scripts/dgf_explorador_fetcher.py --resource solar --demo`
+> (or `--resource eolic`). The `dgf_poller.py` path stays for the gated `/api/` once approved.
+
 | | File | When |
 |---|---|---|
 | **Option A** *(recommended, hourly)* | `bronze_dgf_autoloader.py` | poller lands JSON in a UC Volume → Auto Loader DLT bronze. Cheapest, replayable, no broker. |
