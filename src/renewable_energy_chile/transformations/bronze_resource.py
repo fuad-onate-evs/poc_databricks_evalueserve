@@ -10,10 +10,12 @@ schema : str = spark.conf.get("bronze_schema")
 # COMMAND ----------
 
 # Column-level data dictionary for the raw bronze tables. These mirror the
-# Auto Loader-inferred schema exactly (same column order + types) and only add
-# COMMENTs, so every field is documented in Catalog Explorer without changing
-# ingestion behaviour. Auto Loader still rescues unexpected columns into
-# _rescued_data, and schemaEvolutionMode keeps handling genuinely new columns.
+# Auto Loader-inferred schema (same column order + types) and add COMMENTs so
+# every field is documented in Catalog Explorer.
+# NOTE: pinning the table schema makes a genuinely NEW source column land in
+# _rescued_data rather than being auto-added as a new table column — a deliberate
+# trade of stability over auto-evolution. Re-pin this schema if the upstream CSV
+# shape changes (validate against a DESCRIBE of the inferred schema).
 _BRONZE_TAIL = (
     "valor STRING COMMENT 'Measured generation value (raw; Spanish decimal with a comma, e.g. 442,9).', "
     "_rescued_data STRING COMMENT 'Auto Loader rescued data: source values that did not match the inferred schema.', "

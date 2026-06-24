@@ -17,9 +17,10 @@ raw_path = {"hydropower_consumption": f"/Volumes/{env}/{schema}/lookup/hydropowe
 # COMMAND ----------
 
 # Column-level data dictionary for the conglomerate raw bronze tables (Our World
-# in Data CSVs). These mirror the Auto Loader-inferred schema exactly (same column
-# order + types) and only add COMMENTs, documenting every field in Catalog Explorer
-# without changing ingestion behaviour.
+# in Data CSVs). These mirror the Auto Loader-inferred schema (same column order +
+# types) and add COMMENTs, documenting every field in Catalog Explorer.
+# NOTE: pinning the table schema makes a genuinely NEW source column land in
+# _rescued_data rather than being auto-added — a deliberate stability trade-off.
 _CONG_TAIL = (
     "_rescued_data STRING COMMENT 'Auto Loader rescued data: source values that did not match the inferred schema.', "
     "modification_date TIMESTAMP COMMENT 'Source file modification time (_metadata.file_modification_time) — ingestion freshness.', "
