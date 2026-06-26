@@ -1,0 +1,19 @@
+resources:
+  pipelines:
+    weather_streaming:
+      name: weather_streaming
+
+      catalog: ${var.catalog}
+      schema: ${var.resource_bronze_schema}
+
+      serverless: true
+      root_path: "../../src/weather/transformations"
+      libraries:
+        - glob:
+            include: ../../src/weather/transformations/**
+
+      configuration:
+        catalog: ${var.catalog}
+        bronze_schema: ${var.resource_bronze_schema}
+        silver_schema: ${var.resource_silver_schema}
+        gold_schema: ${var.resource_gold_schema}

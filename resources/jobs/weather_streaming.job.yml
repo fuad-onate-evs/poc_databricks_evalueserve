@@ -1,0 +1,42 @@
+resources:
+  jobs:
+    weather_streaming_job:
+      name: weather_streaming
+
+      # Hourly: fetch the DGF weather API into the Volume, then run the medallion.
+      trigger:
+        periodic:
+          interval: 1
+          unit: HOURS
+
+      email_notifications:
+        on_failure:
+          - ${var.receiver_email}
+
+      environments:
+        - environment_key: weather_env
+          spec:
+            client: "2"
+            dependencies:
+              - requests
+
+      tasks:
+        # 1) API of the data owner (DGF) -> UC Volume (no auth, real data).
+        - task_key: fetch_weather
+          environment_key: weather_env
+          spark_python_task:
+            python_file: ../../scripts/dgf_explorador_fetcher.py
+            parameters:
+              - "--points-file"
+              - "${workspace.file_path}/data/renewable_plants.csv"
+              - "--op"
+              - "VistaRapida"
+              - "--landing"
+              - "/Volumes/${var.catalog}/${var.resource_bronze_schema}/lookup/dgf/"
+
+        # 2) Volume -> bronze -> silver -> GOLD (Auto Loader medallion).
+        - task_key: weather_medallion
+          depends_on:
+            - task_key: fetch_weather
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.weather_streaming.id}
