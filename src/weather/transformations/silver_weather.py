@@ -17,6 +17,11 @@ silver_schema: str = spark.conf.get("silver_schema")
             "wind speed, typed from the raw VistaRapida payload.",
     table_properties={"layer": "silver", "quality": "silver"},
 )
+@dlt.expect_all_or_drop({
+    "known_resource": "resource IN ('solar','eolic')",
+    "valid_coords": "lat BETWEEN -56 AND -17 AND lon BETWEEN -76 AND -66",   # Chile bounds
+    "has_metric": "ghi IS NOT NULL OR wind_ms IS NOT NULL",
+})
 def weather_silver():
     flat = (
         dlt.read(f"{bronze_schema}.weather_bronze")

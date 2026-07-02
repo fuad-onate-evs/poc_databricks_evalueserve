@@ -39,6 +39,7 @@ import csv
 import json
 import os
 import sys
+import time
 import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
@@ -73,6 +74,25 @@ def make_session() -> requests.Session:
     return s
 
 
+def _get_json(session, url, referer, attempts=3):
+    """GET the python-router URL, retrying transient empty / invalid-JSON responses.
+
+    The Explorador backend intermittently returns an empty 200 body; the session's
+    Retry adapter only covers 5xx, so we retry empty/non-JSON here.
+    """
+    last = ""
+    for i in range(attempts):
+        r = session.get(url, headers={"Referer": referer}, timeout=40)
+        r.raise_for_status()
+        if r.text.strip():
+            try:
+                return r.json()  # Content-Type is text/html but the body is JSON
+            except ValueError:
+                last = r.text[:80]
+        time.sleep(0.5 * (i + 1))
+    raise RuntimeError(f"empty/invalid JSON from Explorador after {attempts} tries ({last!r})")
+
+
 def fetch_point(session, resource, op, lat, lon, name, modelo):
     """Call the Explorador python-router for one point; return an enriched record."""
     host = HOSTS[resource]
@@ -82,9 +102,7 @@ def fetch_point(session, resource, op, lat, lon, name, modelo):
         datos["modelo"] = {"value": modelo, "recon": modelo}
     payload = {"tipo": op, "datos": datos}
     url = f"{host}/python-router/" + urllib.parse.quote(json.dumps(payload))
-    r = session.get(url, headers={"Referer": f"{host}/"}, timeout=40)
-    r.raise_for_status()
-    body = r.json()  # Content-Type is text/html but the body is JSON
+    body = _get_json(session, url, f"{host}/")
     return {
         "resource": resource,
         "op": op,
