@@ -5,6 +5,17 @@ lakehouse for Chilean renewable-energy data, built as a **Databricks Asset Bundl
 (Delta Live Tables / Lakeflow Declarative Pipelines), **Auto Loader** streaming ingestion, and
 **Unity Catalog** governance.
 
+## PoC deliverables
+
+![Architecture — Renewable-Energy PoC](docs/deliverables/architecture.png)
+
+- 📄 **Executive summary (PDF)** — [`docs/deliverables/executive-summary.pdf`](docs/deliverables/executive-summary.pdf)
+- 📘 **Technical documentation (PDF)** — [`docs/deliverables/technical-documentation.pdf`](docs/deliverables/technical-documentation.pdf)
+- 🖼️ **Architecture diagram (PNG)** — [`docs/deliverables/architecture.png`](docs/deliverables/architecture.png)
+- 📊 **Slide deck (PPTX)** — [`docs/deliverables/poc-deck.pptx`](docs/deliverables/poc-deck.pptx)
+
+**Explore / test the live results:** [Job](https://dbc-54b27bae-2e91.cloud.databricks.com/jobs/503330163541320?o=7474645896934260) · [Pipeline](https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/c108b287-98cc-43d6-86d6-5b63a9e6b4ae?o=7474645896934260) · [Gold table](https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/weather_gold_resource_kpi?o=7474645896934260) · [PR #24](https://github.com/oxiboy/poc_databricks_evalueserve/pull/24)
+
 ## Domains & data sources
 
 | Domain | What it models | Data source (owner) |
