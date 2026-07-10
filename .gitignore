@@ -6,7 +6,17 @@ __pycache__/
 *.egg-info
 .venv/
 *.lock
+!uv.lock
 scratch/**
 !scratch/README.md
 **/explorations/**
 **/!explorations/README.md
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Local data landing (fetchers)
+_dgf_landing/
+_owid_landing*/

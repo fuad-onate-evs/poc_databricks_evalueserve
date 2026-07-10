@@ -1,36 +1,74 @@
 name: Databricks CI/CD
 
+# Design:
+#  - pull_request  -> fast checks (lint + unit tests). No secrets, no deploy.
+#                     Safe for fork PRs (secrets are not exposed to fork workflows).
+#  - push to main  -> validate + deploy to dev (integration on merge).
+#  - workflow_dispatch (deploy_target: prod) -> gated prod deploy via a protected
+#                     GitHub Environment (configure required reviewers in repo settings).
 on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
-  pull_request_review:
-    types: [submitted]
+    inputs:
+      deploy_target:
+        description: "Deploy the bundle to this target"
+        type: choice
+        options: [dev, prod]
+        default: dev
+
 jobs:
-  databricks_CI:
-    if: github.event.review.state == 'approved' || github.event_name == 'workflow_dispatch'
+  # ---- Fast feedback on every PR and push: lint + unit tests. No secrets. ----
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: define dev enviroment 
-        run: echo "TARGET_ENV=dev" >> $GITHUB_ENV
-        if: ${{ github.event_name == 'workflow_dispatch' }} 
-      - name: define prod enviroment
-        run: echo "TARGET_ENV=prod" >> $GITHUB_ENV
-        if: ${{ github.event_name == 'pull_request_review' }}
-      - name: Install Databricks CLI
-        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: validate Databricks CLI
-        run: databricks version
-      - name: Databricks Login
-        run: printf '${{ secrets.DATABRICK_ACCESS_TOKEN }}' | databricks configure --host ${{ secrets.DATABRICKS_HOST }}
-      - name: Validate Databricks Bundle
-        run: databricks bundle validate -t $TARGET_ENV
-      - name: Deploy Databricks
-        run: databricks bundle deploy -t $TARGET_ENV
-      - name: Run unit test
-        run: uv run main
+        uses: astral-sh/setup-uv@v5
+      - name: Install dependencies (from uv.lock)
+        run: uv sync --dev --frozen
+      # Non-blocking for now: the codebase has a lint/format backlog. Once cleared,
+      # drop `continue-on-error` to make these blocking gates.
+      - name: Lint & format check (ruff) — non-blocking
+        continue-on-error: true
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Unit tests (pytest)
+        run: uv run pytest tests/unit_test -q
+
+  # ---- Validate + deploy to dev on merge to main (secrets available on trusted branch). ----
+  deploy-dev:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICK_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+      - name: Validate bundle (dev)
+        run: databricks bundle validate -t dev --var=dev_catalog=workspace
+      - name: Deploy to dev
+        run: databricks bundle deploy -t dev --var=dev_catalog=workspace
+
+  # ---- Manual, gated production deploy. ----
+  deploy-prod:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'prod'
+    runs-on: ubuntu-latest
+    environment: production   # add required reviewers to this environment in repo settings
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICK_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+      - name: Validate bundle (prod)
+        run: databricks bundle validate -t prod
+      - name: Deploy to prod
+        run: databricks bundle deploy -t prod
