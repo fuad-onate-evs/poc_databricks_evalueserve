@@ -9,6 +9,7 @@ include:
   - "./resources/schema.yml"
   - "./resources/volume.yml"
   - "./resources/jobs/full_execution.job.yml"
+  - "./resources/jobs/conglomerate_owid.job.yml"
   - "./resources/pipeline/*"
 
 

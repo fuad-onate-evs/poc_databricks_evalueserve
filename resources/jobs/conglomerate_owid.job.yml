@@ -1,0 +1,34 @@
+# Orchestration for the Conglomerate (country) domain:
+# fetch the OWID source CSVs into the Volume, then run the medallion pipeline.
+resources:
+  jobs:
+    conglomerate_owid_job:
+      name: conglomerate_owid
+
+      # Country-level stats refresh infrequently; daily is plenty.
+      trigger:
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      environments:
+        - environment_key: owid_env
+          spec:
+            environment_version: "4"
+
+      tasks:
+        # 1) OWID (Our World in Data) open CSVs -> UC Volume lookup dirs.
+        - task_key: fetch_owid
+          environment_key: owid_env
+          spark_python_task:
+            python_file: ../../scripts/owid_conglomerate_fetcher.py
+            parameters:
+              - "--landing"
+              - "/Volumes/${var.catalog}/${var.conglomerate_bronze_schema}/lookup"
+
+        # 2) Volume -> bronze -> silver -> gold (country comparisons).
+        - task_key: conglomerate_medallion
+          depends_on:
+            - task_key: fetch_owid
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.renewable_conglomerate.id}
