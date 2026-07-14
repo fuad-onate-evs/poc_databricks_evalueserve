@@ -1,0 +1,36 @@
+# Orchestration for the Resource (generation) domain:
+# fetch per-plant generation from the CEN/Coordinador API, then run the medallion.
+resources:
+  jobs:
+    cen_generation_job:
+      name: cen_generation
+
+      # Per-plant generation is published daily.
+      trigger:
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      environments:
+        - environment_key: cen_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - requests
+
+      tasks:
+        # 1) CEN/Coordinador SIPUB v1 -> UC Volume (solar|eolic × real|coor|reducciones).
+        - task_key: fetch_cen
+          environment_key: cen_env
+          spark_python_task:
+            python_file: ../../scripts/cen_coordinador_fetcher.py
+            parameters:
+              - "--landing"
+              - "/Volumes/${var.catalog}/${var.resource_bronze_schema}/lookup"
+
+        # 2) Volume -> bronze -> silver (Data Vault) -> gold.
+        - task_key: resource_medallion
+          depends_on:
+            - task_key: fetch_cen
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.renewable_energy_chile.id}
