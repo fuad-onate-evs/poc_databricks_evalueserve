@@ -15,6 +15,8 @@ A **medallion (bronze → silver → gold) lakehouse** on **Databricks** for Chi
 | **Architecture diagram** | [`architecture.png`](architecture.png) *(below)* | — |
 | **End-to-end workflow** | [`workflow.png`](workflow.png) *(below)* | — |
 | **Slide deck** | — | [`poc-deck.pptx`](poc-deck.pptx) |
+| **Data contracts & governance** | [`../data-contracts.md`](../data-contracts.md) | — |
+| **Data glossary** | [`../glossary.md`](../glossary.md) | — |
 
 > GitHub renders the `.md` and `.png` inline; `.pdf`/`.pptx` are download-to-view.
 

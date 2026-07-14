@@ -21,6 +21,16 @@ lakehouse for Chilean renewable-energy data, built as a **Databricks Asset Bundl
 
 **Explore / test the live results:** [Job](https://dbc-54b27bae-2e91.cloud.databricks.com/jobs/503330163541320?o=7474645896934260) · [Pipeline](https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/c108b287-98cc-43d6-86d6-5b63a9e6b4ae?o=7474645896934260) · [Gold table](https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/weather_gold_resource_kpi?o=7474645896934260) · [PR #24](https://github.com/oxiboy/poc_databricks_evalueserve/pull/24)
 
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| 📖 **[Project overview](docs/overview/)** | Executive summary + technical documentation (`.md`/`.pdf`), architecture & end-to-end workflow diagrams, slide deck. |
+| 📐 **[Data contracts & governance](docs/data-contracts.md)** | The contract (schema + DLT expectations) for **every medallion step** (bronze/silver/gold) across the three domains. |
+| 📖 **[Data glossary](docs/glossary.md)** | Business & technical terms + full table/column dictionary. |
+
+**Data fetchers** (`scripts/`, land source files into the UC Volume for Auto Loader): DGF Explorador & official MinEnergía API ([PR #24](https://github.com/oxiboy/poc_databricks_evalueserve/pull/24)) · OWID country stats ([PR #25](https://github.com/oxiboy/poc_databricks_evalueserve/pull/25)) · CEN/Coordinador generation ([PR #28](https://github.com/oxiboy/poc_databricks_evalueserve/pull/28)).
+
 ## Domains & data sources
 
 | Domain | What it models | Data source (owner) |
