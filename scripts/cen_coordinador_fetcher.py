@@ -105,11 +105,12 @@ def main():
             continue
         nombre = r.get("central_nombre")
         fecha = str(r.get("fecha"))[:10]
+        anexo = r.get("llave_nombre_natural")   # NombreAnexoCoordinador
         for fl, (_, field) in FLAVORS.items():
             val = r.get(field)
             if val is None:
                 continue
-            buckets[(res, fl)].append((nombre, fecha, val))
+            buckets[(res, fl)].append((nombre, fecha, val, anexo))
 
     total = 0
     for (res, fl), recs in buckets.items():
@@ -119,12 +120,12 @@ def main():
         with open(os.path.join(out_dir, "data.csv"), "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f, delimiter=";")
             if fl == "real":
-                w.writerow(["Nombre", "Fecha", "Hora", "valor"])
-                for nombre, fecha, val in recs:
-                    w.writerow([nombre, fecha, 0, val])   # daily value at hour 0
+                w.writerow(["Nombre", "Fecha", "Hora", "valor", "NombreAnexoCoordinador"])
+                for nombre, fecha, val, anexo in recs:
+                    w.writerow([nombre, fecha, 0, val, anexo])   # daily value at hour 0
             else:
                 w.writerow(["Nombre", "Fecha", "valor"])
-                for nombre, fecha, val in recs:
+                for nombre, fecha, val, anexo in recs:
                     w.writerow([nombre, fecha, val])
         total += len(recs)
         print(f"  {res}/{sub:11} {len(recs):6} rows")
