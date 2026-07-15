@@ -1,0 +1,8 @@
+# AI/BI dashboard: observability for the whole medallion.
+# Two views: row counts per domain/layer, and DLT expectation pass/fail from the pipeline event logs.
+resources:
+  dashboards:
+    medallion_observability:
+      display_name: "Medallion Observability"
+      file_path: ../../dashboards/medallion_observability.lvdash.json
+      warehouse_id: ${var.warehouse_id}

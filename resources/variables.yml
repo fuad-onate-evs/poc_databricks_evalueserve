@@ -72,3 +72,6 @@ variables:
     description: schema name bronze resource domain
     default: dev_${workspace.current_user.short_name}_${var.prod_renewable_gold_schema}
 
+  warehouse_id:
+    description: SQL warehouse backing the AI/BI dashboard
+    default: 8aa88b3454673491

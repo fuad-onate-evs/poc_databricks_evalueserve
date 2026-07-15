@@ -1,0 +1,110 @@
+{
+  "datasets": [
+    {
+      "name": "medallion_counts",
+      "displayName": "Medallion row counts",
+      "queryLines": [
+        "SELECT 'Resource' AS domain, 'bronze' AS layer, 'bronze_real_solar' AS table_name, count(*) AS row_count FROM workspace.dev_fuad_onate_renewable_bronze_energy_chile.bronze_real_solar\n",
+        "UNION ALL SELECT 'Resource', 'bronze', 'bronze_real_eolic', count(*) FROM workspace.dev_fuad_onate_renewable_bronze_energy_chile.bronze_real_eolic\n",
+        "UNION ALL SELECT 'Resource', 'silver', 'silver_sat_measure', count(*) FROM workspace.dev_fuad_onate_renewable_silver_energy_chile.silver_sat_measure\n",
+        "UNION ALL SELECT 'Resource', 'gold', 'gold_daily_measure', count(*) FROM workspace.dev_fuad_onate_renewable_gold_energy_chile.gold_daily_measure\n",
+        "UNION ALL SELECT 'Conglomerate', 'bronze', 'bronze_modern_renewable_prod', count(*) FROM workspace.dev_fuad_onate_conglomerate_bronze_energy_chile.bronze_modern_renewable_prod\n",
+        "UNION ALL SELECT 'Conglomerate', 'silver', 'silver_fact_energy_production', count(*) FROM workspace.dev_fuad_onate_conglomerate_silver_energy_chile.silver_fact_energy_production\n",
+        "UNION ALL SELECT 'Conglomerate', 'gold', 'gold_different_renewable_again_chile', count(*) FROM workspace.dev_fuad_onate_conglomerate_gold_energy.gold_different_renewable_again_chile\n",
+        "ORDER BY domain, layer, table_name"
+      ]
+    },
+    {
+      "name": "dq_expectations",
+      "displayName": "DLT data-quality expectations",
+      "queryLines": [
+        "SELECT 'Resource' AS pipeline, e.dataset, e.name AS expectation, SUM(e.passed_records) AS passed, SUM(e.failed_records) AS failed\n",
+        "FROM (SELECT explode(from_json(details:flow_progress:data_quality:expectations, 'array<struct<name string, dataset string, passed_records bigint, failed_records bigint>>')) AS e\n",
+        "      FROM event_log('9bcfc32a-19f0-4327-b5bc-e8ee1cc4a3a4') WHERE event_type = 'flow_progress')\n",
+        "GROUP BY 1, 2, 3\n",
+        "UNION ALL\n",
+        "SELECT 'Conglomerate', e.dataset, e.name, SUM(e.passed_records), SUM(e.failed_records)\n",
+        "FROM (SELECT explode(from_json(details:flow_progress:data_quality:expectations, 'array<struct<name string, dataset string, passed_records bigint, failed_records bigint>>')) AS e\n",
+        "      FROM event_log('b5d63282-a439-42ef-8e3b-cd707a9d5f58') WHERE event_type = 'flow_progress')\n",
+        "GROUP BY 1, 2, 3\n",
+        "ORDER BY failed DESC, pipeline, dataset"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Medallion Observability",
+      "layout": [
+        {
+          "widget": {
+            "name": "counts_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "medallion_counts",
+                  "fields": [
+                    { "name": "domain", "expression": "`domain`" },
+                    { "name": "layer", "expression": "`layer`" },
+                    { "name": "table_name", "expression": "`table_name`" },
+                    { "name": "row_count", "expression": "`row_count`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "domain", "displayName": "Domain" },
+                  { "fieldName": "layer", "displayName": "Layer" },
+                  { "fieldName": "table_name", "displayName": "Table" },
+                  { "fieldName": "row_count", "displayName": "Rows" }
+                ]
+              }
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 8 }
+        },
+        {
+          "widget": {
+            "name": "dq_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_expectations",
+                  "fields": [
+                    { "name": "pipeline", "expression": "`pipeline`" },
+                    { "name": "dataset", "expression": "`dataset`" },
+                    { "name": "expectation", "expression": "`expectation`" },
+                    { "name": "passed", "expression": "`passed`" },
+                    { "name": "failed", "expression": "`failed`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "pipeline", "displayName": "Pipeline" },
+                  { "fieldName": "dataset", "displayName": "Dataset" },
+                  { "fieldName": "expectation", "displayName": "Expectation" },
+                  { "fieldName": "passed", "displayName": "Passed" },
+                  { "fieldName": "failed", "displayName": "Failed" }
+                ]
+              }
+            }
+          },
+          "position": { "x": 6, "y": 0, "width": 6, "height": 8 }
+        }
+      ]
+    }
+  ]
+}
