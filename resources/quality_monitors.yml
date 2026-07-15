@@ -1,0 +1,26 @@
+# Lakehouse / Data Quality Monitors on the gold tables of the three domains.
+# Each monitor profiles the table on refresh and publishes <table>_profile_metrics and
+# <table>_drift_metrics plus an auto-generated quality dashboard — this is the freshness /
+# drift half of observability (the DLT expectations cover in-pipeline rules).
+resources:
+  quality_monitors:
+    gold_daily_measure_monitor:
+      table_name: ${var.catalog}.${var.resource_gold_schema}.gold_daily_measure
+      output_schema_name: ${var.catalog}.${var.resource_gold_schema}
+      assets_dir: /Workspace/Users/${workspace.current_user.userName}/quality_monitors/gold_daily_measure
+      warehouse_id: ${var.warehouse_id}
+      snapshot: {}
+
+    weather_gold_kpi_monitor:
+      table_name: ${var.catalog}.${var.resource_gold_schema}.weather_gold_resource_kpi
+      output_schema_name: ${var.catalog}.${var.resource_gold_schema}
+      assets_dir: /Workspace/Users/${workspace.current_user.userName}/quality_monitors/weather_gold_resource_kpi
+      warehouse_id: ${var.warehouse_id}
+      snapshot: {}
+
+    conglomerate_gold_monitor:
+      table_name: ${var.catalog}.${var.conglomerate_gold_schema}.gold_different_renewable_again_chile
+      output_schema_name: ${var.catalog}.${var.conglomerate_gold_schema}
+      assets_dir: /Workspace/Users/${workspace.current_user.userName}/quality_monitors/gold_different_renewable_again_chile
+      warehouse_id: ${var.warehouse_id}
+      snapshot: {}
