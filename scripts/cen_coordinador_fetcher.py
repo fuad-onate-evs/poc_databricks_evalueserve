@@ -34,6 +34,7 @@ import csv
 import datetime as dt
 import os
 import sys
+import time
 
 import requests
 
@@ -49,12 +50,33 @@ FLAVORS = {
 }
 
 
-def api_get(session, resource, params=""):
+def api_get(session, resource, params="", attempts=3):
+    """GET a SIPUB resource. Retries transient failures (the API drops long responses)."""
     url = f"{BASE}/{resource}/?{params + '&' if params else ''}user_key={session.key}"
-    r = session.get(url, timeout=120)
-    r.raise_for_status()
-    d = r.json()
-    return d.get("data", d) if isinstance(d, dict) else d
+    for i in range(attempts):
+        try:
+            r = session.get(url, timeout=180)
+            r.raise_for_status()
+            d = r.json()
+            return d.get("data", d) if isinstance(d, dict) else d
+        except Exception:
+            if i == attempts - 1:
+                raise
+            time.sleep(2 * (i + 1))
+
+
+def fetch_window(session, start, end, chunk_days):
+    """Pull the date range in chunks — a single long range overruns the API's response."""
+    rows = []
+    day = dt.timedelta(days=1)
+    cur, last = dt.date.fromisoformat(start), dt.date.fromisoformat(end)
+    while cur <= last:
+        hi = min(cur + dt.timedelta(days=chunk_days) - day, last)
+        rows += api_get(session, "recursos/desviacion_generacion_grupo_reporte",
+                        f"fecha__gte={cur}&fecha__lte={hi}")
+        print(f"  fetched {cur}..{hi}  ({len(rows)} rows so far)")
+        cur = hi + day
+    return rows
 
 
 def classify(nombre, name2tipo):
@@ -77,6 +99,8 @@ def main():
     ap.add_argument("--landing", required=True,
                     help="lookup root; writes <landing>/<solar|eolic>/<sub>/data.csv")
     ap.add_argument("--user-key", default=os.environ.get("CEN_USER_KEY", PUBLIC_KEY))
+    ap.add_argument("--chunk-days", type=int, default=7,
+                    help="days per API request (the API drops very long ranges)")
     args = ap.parse_args()
 
     today = dt.date.today()
@@ -91,9 +115,8 @@ def main():
     centrales = api_get(s, "recursos/infotecnica/centrales")
     name2tipo = {(c.get("nombre") or "").strip().upper(): c.get("tipo") for c in centrales}
 
-    # per-plant/day generation
-    rows = api_get(s, "recursos/desviacion_generacion_grupo_reporte",
-                   f"fecha__gte={start}&fecha__lte={end}")
+    # per-plant/day generation, pulled in chunks
+    rows = fetch_window(s, start, end, args.chunk_days)
 
     # bucket rows by (resource, flavor)
     buckets = {(res, fl): [] for res in TIPO_RESOURCE.values() for fl in FLAVORS}
