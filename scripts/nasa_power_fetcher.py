@@ -76,22 +76,31 @@ def _download(url, attempts=4):
     raise RuntimeError(f"download failed: {url[:90]} ({last})")
 
 
-def fetch_point(name, resource, lat, lon, start, end):
-    """Return long-format rows [plant, resource, lat, lon, momento, <fields>] for one plant."""
+def _fetch_range(lat, lon, start, end):
+    """One NASA POWER call for a range (<= 1 year); returns the parameter dict."""
     import json
     url = (f"{BASE}?parameters={','.join(PARAMS)}&community=RE"
            f"&latitude={lat}&longitude={lon}&start={start}&end={end}&format=JSON")
-    data = json.loads(_download(url))["properties"]["parameter"]
-    hours = sorted(data[next(iter(PARAMS))].keys())  # keys: YYYYMMDDHH
+    return json.loads(_download(url))["properties"]["parameter"]
+
+
+def fetch_point(name, resource, lat, lon, start, end):
+    """Long-format rows for one plant, fetched in yearly chunks (the API caps the range)."""
+    s = dt.datetime.strptime(start, "%Y%m%d").date()
+    e = dt.datetime.strptime(end, "%Y%m%d").date()
     rows = []
-    for h in hours:
-        momento = f"{h[0:4]}-{h[4:6]}-{h[6:8]} {h[8:10]}:00:00"
-        vals = {col: data[p].get(h) for p, col in PARAMS.items()}
-        # skip fully-missing hours
-        if all(v is None or v == FILL for v in vals.values()):
-            continue
-        rows.append([name, resource, lat, lon, momento] +
-                    [("" if (vals[c] is None or vals[c] == FILL) else vals[c]) for c in OUT_COLS[5:]])
+    cur = s
+    while cur <= e:
+        hi = min(dt.date(cur.year, 12, 31), e)
+        data = _fetch_range(lat, lon, cur.strftime("%Y%m%d"), hi.strftime("%Y%m%d"))
+        for h in sorted(data[next(iter(PARAMS))].keys()):   # keys: YYYYMMDDHH
+            vals = {col: data[p].get(h) for p, col in PARAMS.items()}
+            if all(v is None or v == FILL for v in vals.values()):
+                continue
+            momento = f"{h[0:4]}-{h[4:6]}-{h[6:8]} {h[8:10]}:00:00"
+            rows.append([name, resource, lat, lon, momento] +
+                        [("" if (vals[c] is None or vals[c] == FILL) else vals[c]) for c in OUT_COLS[5:]])
+        cur = dt.date(cur.year + 1, 1, 1)
     return rows
 
 
