@@ -19,7 +19,19 @@ lakehouse for Chilean renewable-energy data, built as a **Databricks Asset Bundl
 
 > GitHub renders the `.md` versions and the PNGs inline; the `.pdf`/`.pptx` are download-to-view (standard GitHub behavior).
 
-**Explore / test the live results:** [Job](https://dbc-54b27bae-2e91.cloud.databricks.com/jobs/503330163541320?o=7474645896934260) · [Pipeline](https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/c108b287-98cc-43d6-86d6-5b63a9e6b4ae?o=7474645896934260) · [Gold table](https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/weather_gold_resource_kpi?o=7474645896934260) · [PR #24](https://github.com/oxiboy/poc_databricks_evalueserve/pull/24)
+## Verify the medallion & jobs (dev)
+
+**Pipelines:** [Resource](https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/9bcfc32a-19f0-4327-b5bc-e8ee1cc4a3a4?o=7474645896934260) · [Conglomerate](https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/b5d63282-a439-42ef-8e3b-cd707a9d5f58?o=7474645896934260) · [Weather](https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/c108b287-98cc-43d6-86d6-5b63a9e6b4ae?o=7474645896934260)
+
+**Jobs:** [Weather (fetch → medallion)](https://dbc-54b27bae-2e91.cloud.databricks.com/jobs/503330163541320?o=7474645896934260)
+
+**Gold tables:** [Resource daily](https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/gold_daily_measure?o=7474645896934260) · [Weather KPI](https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/weather_gold_resource_kpi?o=7474645896934260) · [Conglomerate](https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_conglomerate_gold_energy/gold_different_renewable_again_chile?o=7474645896934260)
+
+**Weather historical bronze (NASA POWER, 876k rows):** `workspace.dev_fuad_onate_renewable_bronze_energy_chile.bronze_weather_nasa_power`
+
+**Data-quality monitors:** [Resource](https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f1809adb1a199384b80e96c469a206?o=7474645896934260) · [Weather](https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f1809ae54812c08231e73a5350f27c?o=7474645896934260) · [Conglomerate](https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f1809ae61519be89d4cf09780d51d6?o=7474645896934260)
+
+**Pull requests:** [all open PRs](https://github.com/oxiboy/poc_databricks_evalueserve/pulls) (#24 weather · #25 OWID · #26 docs · #27 CI · #28 CEN)
 
 ## Documentation
 
@@ -29,7 +41,8 @@ lakehouse for Chilean renewable-energy data, built as a **Databricks Asset Bundl
 | 📐 **[Data contracts & governance](docs/data-contracts.md)** | The contract (schema + DLT expectations) for **every medallion step** (bronze/silver/gold) across the three domains. |
 | 📖 **[Data glossary](docs/glossary.md)** | Business & technical terms + full table/column dictionary. |
 
-**Data fetchers** (`scripts/`, land source files into the UC Volume for Auto Loader): DGF Explorador & official MinEnergía API ([PR #24](https://github.com/oxiboy/poc_databricks_evalueserve/pull/24)) · OWID country stats ([PR #25](https://github.com/oxiboy/poc_databricks_evalueserve/pull/25)) · CEN/Coordinador generation ([PR #28](https://github.com/oxiboy/poc_databricks_evalueserve/pull/28)).
+**Data fetchers** (`scripts/`, land source files into the UC Volume for Auto Loader):
+NASA POWER historical hourly weather · DMC real-time stations · DGF Explorador & official MinEnergía API ([PR #24](https://github.com/oxiboy/poc_databricks_evalueserve/pull/24)) · OWID country stats ([PR #25](https://github.com/oxiboy/poc_databricks_evalueserve/pull/25)) · CEN/Coordinador generation ([PR #28](https://github.com/oxiboy/poc_databricks_evalueserve/pull/28)).
 
 ## Domains & data sources
 
@@ -37,7 +50,7 @@ lakehouse for Chilean renewable-energy data, built as a **Databricks Asset Bundl
 |---|---|---|
 | **Resource** — `renewable_energy_chile` | Solar/wind **generation** per plant, hourly (coordinado / real / reducciones). Silver = Data Vault (hub/link/sat); gold = daily/weekly/monthly measures + real-vs-coordinated diff. | CEN / Coordinador Eléctrico Nacional |
 | **Conglomerate** — `renewable_conglomerate_energy` | Country-level (Entity/Year) renewable stats → dim/fact → gold YoY increase + Chile-vs-LATAM/World. | Our World in Data (OWID) |
-| **Weather** — `weather` | DGF (U. de Chile Geophysics) solar irradiance + wind **resource** → bronze/silver/gold. *Current PoC deliverable — see PR #24 / `feat/weather-streaming`.* | DGF Explorador (`solar` / `eolico.minenergia.cl`, open API) |
+| **Weather** — `renewable_energy_chile` (weather tables) | Solar irradiance + wind **resource** → bronze/silver/gold. Sources by role: **NASA POWER** (historical hourly, 10-yr load) · **DMC** (real-time measured stations) · **MinEnergía/DGF** (modeled). | NASA POWER · DMC / meteochile · DGF/MinEnergía |
 
 > The **DGF is the owner of the *resource* (weather) data** — solar irradiance, wind — **not** the
 > generation. Generation comes from the **CEN**, and country statistics from **OWID**.
