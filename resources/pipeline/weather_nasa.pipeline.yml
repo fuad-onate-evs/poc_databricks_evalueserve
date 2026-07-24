@@ -1,0 +1,16 @@
+resources:
+  pipelines:
+    weather_nasa:
+      name: weather_nasa
+      catalog: ${var.catalog}
+      schema: ${var.resource_bronze_schema}
+      serverless: true
+      root_path: "../../src/weather_nasa/transformations"
+      libraries:
+        - glob:
+            include: ../../src/weather_nasa/transformations/**
+      configuration:
+        catalog: ${var.catalog}
+        bronze_schema: ${var.resource_bronze_schema}
+        silver_schema: ${var.resource_silver_schema}
+        gold_schema: ${var.resource_gold_schema}
