@@ -39,8 +39,15 @@ monitored with Lakehouse Data-Quality Monitors.
   `PRECTOTCORR`, `WS10M/WD10M/WS50M` per plant coordinate, in **yearly chunks** (the API caps the
   range per request).
 - **Full load: 876,720 rows** (10 plants × 87,672 hours, **2015–2024**) → UC Volume →
-  bronze `bronze_weather_nasa_power` (`read_files`).
+  bronze `bronze_weather_nasa_power`.
 - Physically validated: midday GHI highest for the Atacama plants (~871 W/m²).
+- **Modeled as a star schema + marts (DLT pipeline `weather_nasa`):**
+  silver `silver_weather_nasa_dim_plant` (dimension) + `silver_weather_nasa_fact_hourly`
+  (fact, `@expect_all_or_drop`); gold marts `gold_weather_nasa_resource_kpi` (per-plant KPI,
+  rank, A/B/C tier), `gold_weather_nasa_daily` (36,530 rows) and `gold_weather_nasa_monthly`
+  (1,200 rows).
+- **AI/BI dashboard** (time series + KPIs) published on the weather gold: monthly GHI/wind per
+  plant + resource-KPI table.
 
 ## 5. Data quality, contracts & observability (Databricks-native)
 
@@ -68,7 +75,9 @@ deletes it in dev — deploy from a branch that contains everything, or merge fi
 - **Conglomerate pipeline:** https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/b5d63282-a439-42ef-8e3b-cd707a9d5f58?o=7474645896934260
 - **Weather pipeline:** https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/c108b287-98cc-43d6-86d6-5b63a9e6b4ae?o=7474645896934260
 - **Weather Job (fetch → medallion):** https://dbc-54b27bae-2e91.cloud.databricks.com/jobs/503330163541320?o=7474645896934260
-- **Bronze (NASA POWER, 876k rows):** `workspace.dev_fuad_onate_renewable_bronze_energy_chile.bronze_weather_nasa_power`
+- **Weather NASA — dashboard (time series + KPIs):** https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f18771593d19568e23e322277007c3?o=7474645896934260
+- **Weather NASA — gold monthly:** https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/gold_weather_nasa_monthly?o=7474645896934260
+- **Weather NASA — silver fact (876k):** https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_silver_energy_chile/silver_weather_nasa_fact_hourly?o=7474645896934260
 - **Gold — Resource:** https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/gold_daily_measure?o=7474645896934260
 - **Gold — Weather KPI:** https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/weather_gold_resource_kpi?o=7474645896934260
 - **Gold — Conglomerate:** https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_conglomerate_gold_energy/gold_different_renewable_again_chile?o=7474645896934260

@@ -24,7 +24,7 @@ all in a **dev** environment, on isolated branches; production is the project le
 ## Results (verified in dev)
 
 - **Medallion runs end-to-end for all three domains** (bronze → silver → gold).
-- **Weather**: 10 plants ranked by resource; 10-year historical hourly loaded, physically validated (Atacama plants show the highest solar irradiance — as expected).
+- **Weather**: 10-year historical hourly loaded (physically validated — Atacama shows the highest irradiance), modeled as a **star schema + marts** (daily/monthly/KPI), with an **AI/BI dashboard** (time series + KPIs).
 - **Resource**: real per-plant generation (coordinado / real / reducciones).
 - **Conglomerate**: Chile-vs-World renewables lead grew +19 → +38 (2017–2024).
 
