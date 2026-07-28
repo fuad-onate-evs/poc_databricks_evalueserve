@@ -1,8 +1,8 @@
 # Project Overview — Renewable-Energy Data-Engineering PoC
 
-*Single, consolidated home for the project overview: executive summary, technical documentation, architecture & workflow diagrams, and the slide deck.*
+*Single, consolidated home for the project overview: executive summary, technical documentation, architecture & data-flow diagrams, and the slide deck.*
 
-A **medallion (bronze → silver → gold) lakehouse** on **Databricks** for Chilean renewable-energy data — built as a **Databricks Asset Bundle** with **DLT** (Delta Live Tables), **Auto Loader** streaming ingestion, and **Unity Catalog** governance, across **three domains** (Weather · Resource · Conglomerate).
+A **medallion (bronze → silver → gold) lakehouse** on **Databricks** for Chilean renewable-energy data — built as a **Databricks Asset Bundle** with **DLT** (Delta Live Tables), **Auto Loader** streaming ingestion, and **Unity Catalog** governance, across **three domains** (Weather · Resource · Conglomerate). *Updated 2026-07-28.*
 
 ---
 
@@ -13,6 +13,7 @@ A **medallion (bronze → silver → gold) lakehouse** on **Databricks** for Chi
 | **Executive summary** | [`executive-summary.md`](executive-summary.md) | [`.pdf`](executive-summary.pdf) |
 | **Technical documentation** | [`technical-documentation.md`](technical-documentation.md) | [`.pdf`](technical-documentation.pdf) |
 | **Architecture diagram** | [`architecture.png`](architecture.png) *(below)* | — |
+| **Data-flow diagram** | [`dataflow.png`](dataflow.png) *(below)* | — |
 | **End-to-end workflow** | [`workflow.png`](workflow.png) *(below)* | — |
 | **Slide deck** | — | [`poc-deck.pptx`](poc-deck.pptx) |
 | **Data contracts & governance** | [`../data-contracts.md`](../data-contracts.md) | — |
@@ -28,11 +29,29 @@ A **medallion (bronze → silver → gold) lakehouse** on **Databricks** for Chi
 
 Sources → Ingestion → **Bronze → Silver → Gold** → Consumption, on serverless DLT, orchestrated by hourly/daily Databricks Jobs and governed by Unity Catalog.
 
-## 🔄 End-to-end data workflow
+## 🔄 End-to-end data flow
 
-![End-to-end data workflow](workflow.png)
+![End-to-end data flow](dataflow.png)
 
-Each domain flows independently through the medallion; a Databricks Job per domain runs **fetch → DLT pipeline refresh**.
+Each source is fetched to a UC Volume, ingested via Auto Loader, and flows independently through the medallion; weather converges into consolidated `all_sources` tables and AI/BI dashboards.
+
+---
+
+## 🖼️ Previews (rendered from the real data & catalog)
+
+**Weather medallion** — dev catalog, per-source + consolidated `all_sources` per layer:
+
+![Weather medallion map](medallion-map.png)
+
+**Dashboard — Chile tab** (seasonality & trends):
+
+![Dashboard Chile](dashboard-chile.png)
+
+**Dashboard — Rest of World tab** (hemisphere seasonality, 12 cities):
+
+![Dashboard Rest of World](dashboard-world.png)
+
+> Live dashboards: [Chile & Rest of World (2 tabs)](https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f18a95d5851bb1a33415a71141a908?o=7474645896934260) · [2025–2026 YTD](https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f18a9c8d2f19a48485521da3f5a4f6?o=7474645896934260)
 
 ---
 
@@ -40,34 +59,34 @@ Each domain flows independently through the medallion; a Databricks Job per doma
 
 | Domain | Models | Source (owner) | Status |
 |---|---|---|---|
-| **Weather** (`renewable_energy_chile` — resource/weather) | Solar irradiance + wind resource, hourly | **DGF / MinEnergía** (`api.minenergia.cl` — official API, hourly real 1980–2017; Explorador as open fallback) | ✅ delivered end-to-end |
-| **Resource** (`renewable_energy_chile` — generation) | Solar/wind **generation** per plant (coordinado / real / reducciones); silver = Data Vault | **CEN / Coordinador Eléctrico Nacional** (`valor`) | pipeline built; source via portal / SIPUB `user_key` |
+| **Weather** (`dev.weather_{bronze,silver,gold}`) | Irradiance, temperature, pressure, humidity, wind — hourly (Chile) + daily (world) | **NASA POWER** (history + 12-city world), **DMC** (real-time), **MinEnergía/DGF** (modeled) | ✅ officialized: per-source + consolidated `all_sources` |
+| **Resource** (`renewable_energy_chile` — generation) | Solar/wind **generation** per plant (coordinado / real / reducciones); silver = Data Vault | **CEN / Coordinador Eléctrico Nacional** (public by law) | ✅ pipeline built on real data |
 | **Conglomerate** (`renewable_conglomerate_energy`) | Country-level stats (entity/year, TWh, %) | **Our World in Data (OWID)** — open CSV | ✅ wired to real OWID data |
-
-**Field-by-domain rule:** the DGF/MinEnergía API covers **Weather** only; **generation** (`valor`) comes from CEN and **country** stats from OWID — they are complementary sources, not substitutes.
 
 ---
 
 ## ✅ Results (validated in dev)
 
-- **Weather** — job runs fetch → medallion end-to-end on real data; gold = **5 solar + 5 wind** plants, ranked by resource with an A/B/C quality tier (e.g. Cerro Dominador GHI 7.28 · Negrete Cuel wind 7.85 m/s).
-- **Conglomerate** — pipeline COMPLETED on real OWID series (1965–2025); gold `gold_different_renewable_again_chile`: Chile-vs-World renewables lead grew **+19 → +38** (2017→2024), Chile-vs-LATAM **−24 → −7**.
+- **Weather** — all sources consolidated in dedicated `weather_bronze/silver/gold` schemas (per-source + `all_sources`); 10-year hourly load (876,720 rows) modeled as star schema + marts; **12-city world benchmark** added (hemisphere inversion verified).
+- **Dashboards** — **Chile & Rest of World** (2 tabs; seasonality, trends, max/min/means of temperature, GHI, pressure, wind) + a **2025–2026 YTD** twin + **Weather NASA** (series + KPIs).
+- **Conglomerate** — pipeline COMPLETED on real OWID series; Chile-vs-World renewables lead grew **+19 → +38** (2017→2024).
 
 ## 🔗 Explore / test the live results
 
-- **Weather Job:** https://dbc-54b27bae-2e91.cloud.databricks.com/jobs/503330163541320?o=7474645896934260
-- **Weather Pipeline:** https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/c108b287-98cc-43d6-86d6-5b63a9e6b4ae?o=7474645896934260
-- **Weather GOLD table:** https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/workspace/dev_fuad_onate_renewable_gold_energy_chile/weather_gold_resource_kpi?o=7474645896934260
+- **Weather — Chile & Rest of World (2 tabs):** https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f18a95d5851bb1a33415a71141a908?o=7474645896934260
+- **Weather — Chile & Rest of World, 2025–2026 YTD:** https://dbc-54b27bae-2e91.cloud.databricks.com/sql/dashboardsv3/01f18a9c8d2f19a48485521da3f5a4f6?o=7474645896934260
+- **Weather gold schema:** https://dbc-54b27bae-2e91.cloud.databricks.com/explore/data/dev/weather_gold?o=7474645896934260
 - **Conglomerate Pipeline:** https://dbc-54b27bae-2e91.cloud.databricks.com/pipelines/b5d63282-a439-42ef-8e3b-cd707a9d5f58?o=7474645896934260
-- **Pull requests:** [#24 weather](https://github.com/oxiboy/poc_databricks_evalueserve/pull/24) · [#25 OWID conglomerate](https://github.com/oxiboy/poc_databricks_evalueserve/pull/25)
+- **Pull requests:** https://github.com/oxiboy/poc_databricks_evalueserve/pulls · delivery consolidated in **Trello #74**
 
 ---
 
 ## 🛡️ Governance (Databricks-native)
 
-- **Data quality / contracts:** DLT `@dlt.expect_*` expectations + Delta constraints.
+- **Data quality / contracts:** DLT `@dlt.expect_*` expectations + Delta constraints; per-step contracts in `docs/data-contracts.md`.
 - **Lineage:** Unity Catalog automatic table + column lineage.
-- **Glossary:** UC tags + column comments (100% of columns) + `docs/glossary.md`.
+- **Glossary & comments:** UC tags + column/table comments + `docs/glossary.md`.
+- **Monitoring:** three Data-Quality Monitors on gold + a SQL alert on failed expectations.
 
 ## ▶️ Deploy & run
 
@@ -75,6 +94,7 @@ Each domain flows independently through the medallion; a Databricks Job per doma
 databricks bundle deploy -t dev --var=dev_catalog=workspace
 databricks bundle run weather_streaming_job     -t dev --var=dev_catalog=workspace   # Weather
 databricks bundle run conglomerate_owid_job      -t dev --var=dev_catalog=workspace   # Conglomerate (OWID)
+databricks bundle run cen_generation_job         -t dev --var=dev_catalog=workspace   # Resource (CEN)
 ```
 
 Prod deploys are managed by the project lead (prod target scoped to their workspace).
